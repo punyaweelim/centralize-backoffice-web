@@ -10,6 +10,16 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  // server: {
+  //   proxy: {
+  //     // เมื่อเรียก /api จะวิ่งไปที่ localhost:3000 แทน
+  //     '/api': {
+  //       target: 'https://test.user-api.nwl-dev.com/',
+  //       changeOrigin: true,
+  //       rewrite: (path) => path.replace(/^\/api/, '')
+  //     }
+  //   }
+  // },
   resolve: {
     alias: {
       // Alias @ to the src directory

@@ -11,28 +11,29 @@ export interface User {
   // password: string;
 }
 
-interface UsersProps {
-  users: User[];
-  onAddUser: (user: Omit<User, 'id'>) => void;
-  onDeleteUser: (id: string) => void;
-  onUpdateUser: (id: string, user: Omit<User, 'id'>) => void;
-}
+// interface UsersProps {
+//   users: User[];
+//   onAddUser: (user: Omit<User, 'id'>) => void;
+//   onDeleteUser: (id: string) => void;
+//   onUpdateUser: (id: string, user: Omit<User, 'id'>) => void;
+// }
 
-export function Users({ users, onAddUser, onDeleteUser, onUpdateUser }: UsersProps) {
+export function UsersPage() {
+  const [users, setUsers] =useState([])
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({ email: '', username: '', firstname: '', lastname: '' });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingUser) {
-      onUpdateUser(editingUser.id, formData);
-    } else {
-      onAddUser(formData);
-    }
-    setFormData({ email: '', username: '', firstname: '', lastname: '' });
-    setShowModal(false);
-    setEditingUser(null);
+  //   e.preventDefault();
+  //   if (editingUser) {
+  //     onUpdateUser(editingUser.id, formData);
+  //   } else {
+  //     onAddUser(formData);
+  //   }
+  //   setFormData({ email: '', username: '', firstname: '', lastname: '' });
+  //   setShowModal(false);
+  //   setEditingUser(null);
   };
 
   const handleEdit = (user: User) => {
@@ -71,7 +72,7 @@ export function Users({ users, onAddUser, onDeleteUser, onUpdateUser }: UsersPro
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {/* {users.map((user) => (
               <tr key={user.id} className="border-t border-white/10">
                 <td className="px-6 py-4 text-white">{user.firstname + ' ' + user.lastname}</td>
                 <td className="px-6 py-4 text-white/70">{user.email}</td>
@@ -91,7 +92,7 @@ export function Users({ users, onAddUser, onDeleteUser, onUpdateUser }: UsersPro
                   </button>
                 </td>
               </tr>
-            ))}
+            ))} */}
             {users.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-6 py-8 text-center text-white/50">

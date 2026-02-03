@@ -1,29 +1,92 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
+import { authenService } from '../../services/authenService';
+import { apiClient } from '../../utils/apiClient';
+import { Progress } from './ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog"; // ตรวจสอบ Path ของไฟล์ให้ถูกต้องตามโครงสร้างโปรเจกต์
+import { useNavigate } from 'react-router-dom';
+
 
 interface LoginProps {
   onLogin: () => void;
 }
 
-export function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState('');
+export function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mock login - in real app would validate credentials
-    if (username && password) {
-      onLogin();
-    }
-  };
+  // State สำหรับจัดการ Alert Dialog
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [apiErrorMessage, setApiErrorMessage] = useState('');
 
-  const handleMicrosoftLogin = () => {
-    // Mock Microsoft SAML login
-    onLogin();
+  // States สำหรับ Loading และ Progress
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (email && password) {
+  //     onLogin();
+  //   }
+  // };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoading && progress < 90) {
+      timer = setInterval(() => {
+        setProgress((prev) => prev + Math.random() * 10);
+      }, 500);
+    }
+    return () => clearInterval(timer);
+  }, [isLoading, progress]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setProgress(10); // เริ่มต้นที่ 10%
+    try {
+      const response = await authenService.login({ email, password });
+      setProgress(100);
+      // สมมติว่า Backend ส่ง { accessToken, refreshToken } กลับมา
+      if (response.refresh_token && response.access_token) {
+        apiClient.setTokens(response.accessToken, response.refreshToken);
+        setTimeout(() => navigate('/users'), 500);
+        // window.location.assign('/dashboard');
+      } else {
+        setIsLoading(false);
+        setProgress(0);
+        const message = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+        setApiErrorMessage(message);
+        setIsAlertOpen(true);
+      }
+    } catch (error: any) {
+      // 2. กรณี Error
+      setIsLoading(false);
+      setProgress(0);
+      const message = error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+      setApiErrorMessage(message);
+      setIsAlertOpen(true);
+    } finally {
+      // ไม่เซ็ต setIsLoading(false) ที่นี่ถ้าสำเร็จ เพราะเรากำลังจะ Redirect
+    }
   };
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      {isLoading && (
+        <div className="absolute top-0 left-0 w-full z-50">
+          <Progress value={progress} className="h-1 rounded-none bg-blue-100" />
+        </div>
+      )}
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
@@ -38,11 +101,11 @@ export function Login({ onLogin }: LoginProps) {
         <div className="bg-white/5 rounded-lg border border-white/10 p-8">
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-white/70 mb-2">Username</label>
+              <label className="block text-white/70 mb-2">Email</label>
               <input
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors"
                 placeholder="Enter your username"
                 required
@@ -100,6 +163,25 @@ export function Login({ onLogin }: LoginProps) {
             © 2026 Back Office. All rights reserved.
           </p>
         </div>
+
+
+
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">Login Failed</AlertDialogTitle>
+              <AlertDialogDescription>
+                {apiErrorMessage}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
+                Try Again
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
       </div>
     </div>
   );
