@@ -31,7 +31,7 @@ export const apiClient = {
       if (refreshToken) {
         // พยายามดึง Access Token ใหม่โดยใช้ Refresh Token
         try {
-          const refreshRes = await fetch(`${BASE_URL}/refresh-token`, {
+          const refreshRes = await fetch(`${BASE_URL}auth/refresh-token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken })

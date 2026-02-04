@@ -29,7 +29,22 @@ export const authenService = {
    * ตรวจสอบความถูกต้องของ Access Token ในปัจจุบัน
    * [cite: 883, 886]
    */
-  verifyToken: async () => {
-    return await apiClient.get('auth/verify');
+  async verifyToken() {
+    // 1. ดึง access_token ที่เก็บไว้ (ตัวอย่างจาก localStorage)
+    const accessToken = localStorage.getItem('access_token');
+
+    if (!accessToken) {
+      throw new Error("No token found");
+    }
+
+    // 2. ส่ง request ไปที่ /verify?token=...
+    // การใช้ Query String ใน URL จะเริ่มหลังเครื่องหมาย ? [cite: 464]
+    try {
+      const response = await apiClient.get(`/verify?token=${accessToken}`);
+      return response.data;
+    } catch (error) {
+      console.error("Verification failed", error);
+      throw error;
+    }
   }
 };

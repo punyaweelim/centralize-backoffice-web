@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit2, UserPlus, HardDriveDownload } from 'lucide-react';
-import { User } from './Users';
+import { User } from './UserPage';
 import { Device } from './Devices';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';

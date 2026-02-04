@@ -113,7 +113,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
-import { UsersPage } from './components/Users';
+import UserPage from './components/UserPage';
 // import Dashboard from '@/app/pages/Dashboard';
 // import UserManagement from '@/app/pages/UserManagement';
 
@@ -127,7 +127,7 @@ function App() {
         {/* Protected: ทุกหน้าที่ต้องผ่านการตรวจสอบ และใช้ Layout ร่วมกัน */}
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           {/* <Route path="/dashboard" element={<Dashboard />} /> */}
-          <Route path="/users" element={ <UsersPage /> } />
+          <Route path="/users" element={ <UserPage /> } />
           {/* สามารถเพิ่มหน้าอื่นๆ เช่น /tasks ได้ที่นี่ */}
         </Route>
 

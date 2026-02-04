@@ -53,13 +53,17 @@ export function Login() {
     e.preventDefault();
     setIsLoading(true);
     setProgress(10); // เริ่มต้นที่ 10%
-    try {
+    try { 
       const response = await authenService.login({ email, password });
+      console.log(response);
+      
       setProgress(100);
       // สมมติว่า Backend ส่ง { accessToken, refreshToken } กลับมา
       if (response.refresh_token && response.access_token) {
         apiClient.setTokens(response.accessToken, response.refreshToken);
         setTimeout(() => navigate('/users'), 500);
+        console.log("success > " +response.status);
+        
         // window.location.assign('/dashboard');
       } else {
         setIsLoading(false);
