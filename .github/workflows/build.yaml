@@ -57,16 +57,3 @@ jobs:
           echo "::error::File $TARGET_FILE not found. Check manifest structure."
           exit 1
         fi
-
-    - name: Sync ArgoCD Application
-      run: |
-        # Trigger a hard refresh to force Argo to see the git change immediately
-        kubectl annotate app ${{ env.NS }}-nwl-backoffice-web -n argocd argocd.argoproj.io/refresh=hard --overwrite
-
-    - name: Verify Deployment
-      run: |
-        echo "Waiting for ArgoCD to apply changes..."
-        sleep 15  # Give ArgoCD time to sync the new manifest to the cluster
-
-        # Increase timeout to 300s (5 minutes) to allow for image pull and app startup
-        kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.NS }} --timeout=300s
