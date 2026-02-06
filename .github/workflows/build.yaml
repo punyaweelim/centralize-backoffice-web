@@ -58,11 +58,6 @@ jobs:
           exit 1
         fi
 
-    - name: Sync ArgoCD Application
-      run: |
-        # Trigger a hard refresh to force Argo to see the git change immediately
-        kubectl annotate app ${{ env.NS }}-nwl-backoffice-web -n argocd argocd.argoproj.io/refresh=hard --overwrite
-
     - name: Verify Deployment
       run: |
         echo "Waiting for ArgoCD to apply changes..."
