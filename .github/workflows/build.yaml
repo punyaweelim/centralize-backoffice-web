@@ -57,3 +57,26 @@ jobs:
           echo "::error::File $TARGET_FILE not found. Check manifest structure."
           exit 1
         fi
+
+    - name: Cleanup on Failure
+      if: failure()
+      run: |
+        echo "Deployment failed. Gathering debug information..."
+
+        echo "=== Deployment Status ==="
+        kubectl get deployment/${{ env.IMAGE_NAME }} -n ${{ env.NS }} || true
+
+        echo "=== Pod Status ==="
+        kubectl get pods -n ${{ env.NS }} -l app=${{ env.IMAGE_NAME }} || true
+
+        echo "=== Recent Events ==="
+        kubectl get events -n ${{ env.NS }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 || true
+
+        echo "=== Pod Logs ==="
+        kubectl logs -n ${{ env.NS }} -l app=${{ env.IMAGE_NAME }} --tail=50 --prefix=true || true
+
+        echo "=== Init Container Logs (if migration failed) ==="
+        POD_NAME=$(kubectl get pods -n ${{ env.NS }} -l app=${{ env.IMAGE_NAME }} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+        if [ -n "$POD_NAME" ]; then
+          kubectl logs $POD_NAME -n ${{ env.NS }} -c db-migrate --tail=50 || echo "No init container logs"
+        fi
