@@ -1,0 +1,72 @@
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ns:
+        description: 'Select Namespace'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [ dev, test ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    env:
+      REGISTRY: 10.15.15.116:30500
+      IMAGE_NAME: nwl-backoffice-web
+      NS: ${{ inputs.target_ns }}
+
+    steps:
+    - name: Checkout Application Code
+      uses: actions/checkout@v4
+
+    - name: Set Image Tag
+      run: echo "TAG=$(date +%s)-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build --target runner -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }} .
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+
+    - name: Update Helm Values (GitOps via SSH)
+      run: |
+        # 1. Setup SSH
+        export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+
+        # 2. Clone Manifest Repo
+        git clone git@github.com:NetworkLink2563/nwl-k8s-manifest.git manifest-repo
+        cd manifest-repo
+
+        # 3. Configure Git Identity
+        git config user.name "nwl-runner"
+        git config user.email "runner@nwl.local"
+
+        # 4. Define Target File (Helm Structure)
+        TARGET_FILE="apps/nwl-backoffice-web/values-${{ env.NS }}.yaml"
+
+        # 5. Update Tag
+        if [ -f "$TARGET_FILE" ]; then
+          sed -i "s/tag: .*/tag: ${{ env.TAG }}/" "$TARGET_FILE"
+          
+          git add "$TARGET_FILE"
+          git commit -m "Deploy ${{ env.NS }}: Update nwl-backoffice-web image to ${{ env.TAG }}"
+          git push origin main
+        else
+          echo "::error::File $TARGET_FILE not found. Check manifest structure."
+          exit 1
+        fi
+
+    - name: Sync ArgoCD Application
+      run: |
+        # Trigger a hard refresh to force Argo to see the git change immediately
+        kubectl annotate app ${{ env.NS }}-nwl-backoffice-web -n argocd argocd.argoproj.io/refresh=hard --overwrite
+
+    - name: Verify Deployment
+      run: |
+        echo "Waiting for ArgoCD to apply changes..."
+        sleep 15  # Give ArgoCD time to sync the new manifest to the cluster
+
+        # Increase timeout to 300s (5 minutes) to allow for image pull and app startup
+        kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.NS }} --timeout=300s
