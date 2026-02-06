@@ -3,22 +3,25 @@ FROM node:24-alpine AS builder
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-RUN npm ci || true
+RUN npm ci
 
 COPY . .
+# Vite build outputs to /build per your config
+RUN npm run build
 
-RUN npm run build || true
-
-# ---------- Stage 2: Runner ----------
+# ---------- Stage 2: Runner (Production/Nginx) ----------
 FROM nginx:stable-alpine AS runner
 
+# Create the directory for Vault to inject secrets into if needed
 RUN mkdir -p /usr/share/nginx/html/config
 
-# COPY --from=builder /usr/src/app/build /usr/share/nginx/html 2>/dev/null || true
+# Copy build artifacts
+COPY --from=builder /usr/src/app/build /usr/share/nginx/html
 
-RUN echo '<h1>NWL CI/CD TEST OK</h1>' > /usr/share/nginx/html/index.html
-
+# Custom Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
+
+# The Vault sidecar will manage the files; Nginx just starts
 CMD ["nginx", "-g", "daemon off;"]
