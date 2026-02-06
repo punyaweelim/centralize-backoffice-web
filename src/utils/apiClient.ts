@@ -1,5 +1,5 @@
 // src/utils/apiClient.ts
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const BASE_URL = import.meta.env.APP_USER_API_URL || 'http://localhost:3000';
 
 // Flag เพื่อป้องกันการ refresh ซ้ำซ้อน
 let isRefreshing = false;
