@@ -4,15 +4,19 @@ set -e
 # Create Vault secrets directory
 mkdir -p /vault/secrets
 
-# Generate runtime config if it doesn't exist (for development/testing)
-if [ ! -f /vault/secrets/runtime-config.js ]; then
-    cat > /vault/secrets/runtime-config.js << 'EOF'
-window.APP_CONFIG = {
-  API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000',
-  ENVIRONMENT: process.env.NODE_ENV || 'development',
-};
+# Generate runtime config as JSON (not exposed to window object)
+if [ ! -f /vault/secrets/runtime-config.json ]; then
+    cat > /vault/secrets/runtime-config.json << EOF
+{
+  "APP_USER_API_URL": "${APP_USER_API_URL:-http://localhost:3000}",
+  "ENVIRONMENT": "${NODE_ENV:-development}",
+  "ENABLE_DEBUG": "${ENABLE_DEBUG:-false}"
+}
 EOF
 fi
+
+# Copy to nginx public directory so it can be served
+cp /vault/secrets/runtime-config.json /usr/share/nginx/html/
 
 # Start Nginx
 exec nginx -g "daemon off;"

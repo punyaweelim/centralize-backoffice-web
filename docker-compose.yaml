@@ -13,4 +13,4 @@ services:
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_BASE_URL=http://localhost:3000
+      - APP_USER_API_URL=http://localhost:3000
