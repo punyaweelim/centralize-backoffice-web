@@ -1,36 +1,43 @@
 // src/utils/apiClient.ts
-const BASE_URL =
-  import.meta.env.APP_USER_API_URL.toString() || "http://localhost:3000";
 
-// Flag เพื่อป้องกันการ refresh ซ้ำซ้อน
+import { getConfig } from "../config";
+
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
 
-// เพิ่ม request ที่รอ token ใหม่
 const subscribeTokenRefresh = (callback: (token: string) => void) => {
   refreshSubscribers.push(callback);
 };
 
-// เรียกทุก request ที่รออยู่เมื่อได้ token ใหม่
 const onTokenRefreshed = (token: string) => {
   refreshSubscribers.forEach((callback) => callback(token));
   refreshSubscribers = [];
 };
 
+const getBaseUrl = async (): Promise<string> => {
+  try {
+    return (
+      (await getConfig("APP_USER_API_URL")) ||
+      import.meta.env.APP_USER_API_URL ||
+      "http://localhost:3000"
+    );
+  } catch {
+    return import.meta.env.APP_USER_API_URL || "http://localhost:3000";
+  }
+};
+
 export const apiClient = {
-  // ฟังก์ชันสำหรับเก็บ Token
   setTokens: (accessToken: string, refreshToken: string) => {
     localStorage.setItem("access_token", accessToken);
     localStorage.setItem("refresh_token", refreshToken);
   },
-
-  // ฟังก์ชันสำหรับล้าง Token เมื่อ Logout
   clearTokens: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
   },
 
   async request(endpoint: string, options: RequestInit = {}) {
+    const BASE_URL = await getBaseUrl();
     try {
       let accessToken = localStorage.getItem("access_token");
 
@@ -45,17 +52,14 @@ export const apiClient = {
         headers,
       });
 
-      // กรณี Access Token หมดอายุ (401)
       if (response.status === 401) {
         console.log("Received 401, attempting token refresh...");
 
-        // ถ้ากำลัง refresh อยู่แล้ว ให้รอจนกว่าจะเสร็จ
         if (isRefreshing) {
           console.log("Token refresh in progress, queuing request...");
           return new Promise((resolve, reject) => {
             subscribeTokenRefresh(async (newToken: string) => {
               try {
-                // ส่ง request ใหม่ด้วย token ที่ refresh แล้ว
                 const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
                   ...options,
                   headers: {
@@ -84,7 +88,6 @@ export const apiClient = {
           });
         }
 
-        // เริ่ม refresh token
         isRefreshing = true;
 
         const refreshToken = localStorage.getItem("refresh_token");
@@ -92,13 +95,11 @@ export const apiClient = {
         if (!refreshToken) {
           isRefreshing = false;
           this.clearTokens();
-          // Redirect to login
           window.location.assign("/");
           throw new Error("No refresh token available. Please login again.");
         }
 
         try {
-          // เรียก refresh token endpoint
           const refreshResponse = await fetch(
             `${BASE_URL}/auth/refresh-token`,
             {
@@ -120,15 +121,12 @@ export const apiClient = {
             throw new Error("Invalid refresh token response");
           }
 
-          // บันทึก token ใหม่
           this.setTokens(newAccessToken, newRefreshToken);
           console.log("Token refreshed successfully");
 
-          // แจ้ง requests ที่รออยู่
           onTokenRefreshed(newAccessToken);
           isRefreshing = false;
 
-          // ส่ง request เดิมใหม่ด้วย token ใหม่
           response = await fetch(`${BASE_URL}${endpoint}`, {
             ...options,
             headers: {
@@ -142,17 +140,14 @@ export const apiClient = {
           refreshSubscribers = [];
           this.clearTokens();
 
-          // Redirect to login
           window.location.assign("/");
           throw new Error("Session expired. Please login again.");
         }
       }
 
-      // ตรวจสอบสถานะ HTTP อื่นๆ
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
 
-        // ให้ error message ที่เฉพาะเจาะจงตาม status code
         let errorMessage =
           errorData?.message || `HTTP Error: ${response.status}`;
 
@@ -181,7 +176,6 @@ export const apiClient = {
 
       return await response.json();
     } catch (error: any) {
-      // ตรวจสอบว่าเป็น network error หรือไม่
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         throw new Error(
           "Unable to connect to server. Please check your internet connection.",

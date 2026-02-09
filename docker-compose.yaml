@@ -8,9 +8,6 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-      # Mount vault secrets directory (if available locally)
-      - /vault/secrets:/vault/secrets
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_BASE_URL=http://localhost:3000
