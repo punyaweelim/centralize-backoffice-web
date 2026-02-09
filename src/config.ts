@@ -18,7 +18,7 @@ async function loadConfig(): Promise<Record<string, any>> {
     return {
       APP_USER_API_URL:
         import.meta.env.APP_USER_API_URL || "http://localhost:3000",
-      ENVIRONMENT: import.meta.env.MODE || "development",
+      ENVIRONMENT: "production",
     };
   }
 }
