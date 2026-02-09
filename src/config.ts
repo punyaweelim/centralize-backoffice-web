@@ -17,7 +17,7 @@ async function loadConfig(): Promise<Record<string, any>> {
     console.error("Error loading runtime config:", error);
     return {
       APP_USER_API_URL:
-        import.meta.env.APP_USER_API_URL || "http://localhost:3000",
+        `${import.meta.env.APP_USER_API_URL.toString()}` || "http://localhost:3000",
       ENVIRONMENT: "production",
     };
   }
