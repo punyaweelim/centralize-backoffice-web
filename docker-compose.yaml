@@ -8,9 +8,6 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
-      # Mount vault secrets directory (if available locally)
-      - /vault/secrets:/vault/secrets
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
-      - APP_USER_API_URL=http://localhost:3000
