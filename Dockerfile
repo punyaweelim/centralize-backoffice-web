@@ -21,7 +21,11 @@ COPY --from=builder /usr/src/app/build /usr/share/nginx/html
 # Custom Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 80
 
-# The Vault sidecar will manage the files; Nginx just starts
-CMD ["nginx", "-g", "daemon off;"]
+# Use entrypoint to handle runtime config before starting nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]
