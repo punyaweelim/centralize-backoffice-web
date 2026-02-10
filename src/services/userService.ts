@@ -2,6 +2,7 @@
 import { apiClient } from '../utils/apiClient';
 
 export interface User {
+  name: string;
   id?: string;
   firstName: string;
   lastName: string;

@@ -116,11 +116,7 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
         <TableBody>
           {users.map((user, index) => (
             <TableRow key={user.id || user.email || index}>
-<<<<<<< HEAD
-              <TableCell className="font-medium">{user.firstName || '-'}</TableCell>
-=======
               <TableCell className="font-medium">{user.name || '-'}</TableCell>
->>>>>>> 6950cfc1fe59e028e15fc2fc498457450164e697
               <TableCell>{user.email || '-'}</TableCell>
               <TableCell>
                 <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
