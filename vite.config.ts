@@ -10,6 +10,43 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+   server: {
+    proxy: {
+      // Proxy API requests เพื่อหลีกเลี่ยงปัญหา CORS และ SSL
+      '/api': {
+        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        changeOrigin: true,
+        secure: false, // ข้าม SSL verification ใน development
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/auth': {
+        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/auth/, '/auth'),
+      },
+      '/users': {
+        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/users/, '/users'),
+      },
+      '/devices': {
+        target: process.env.VITE_API_URL || 'https://your-backend-url.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/devices/, '/devices'),
+      },
+      '/projects': {
+        target: process.env.VITE_API_URL || 'https://your-backend-url.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/projects/, '/projects'),
+      },
+    },
+    port: 3000,
+    open: true,
+  },
   resolve: {
     extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
     alias: {
@@ -60,9 +97,5 @@ export default defineConfig({
   build: {
     target: "esnext",
     outDir: "build",
-  },
-  server: {
-    port: 3000,
-    open: true,
-  },
+  }
 });
