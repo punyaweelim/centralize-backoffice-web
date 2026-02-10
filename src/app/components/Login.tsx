@@ -88,8 +88,8 @@ export function Login() {
       // console.log(decoded.role);
       
       
-      // if (decoded.role !== 'SYSTEM_ADMIN') {
-      if (decoded.roles !== 'PROJECT_ADMIN') {
+      if (decoded.role !== 'SYSTEM_ADMIN') {
+      // if (decoded.roles !== 'PROJECT_ADMIN') {
         setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
         setIsAlertOpen(true);
         return false;
