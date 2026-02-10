@@ -32,13 +32,13 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/users/, '/users'),
       },
       '/devices': {
-        target: process.env.VITE_API_URL || 'https://your-backend-url.com',
+        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/devices/, '/devices'),
       },
       '/projects': {
-        target: process.env.VITE_API_URL || 'https://your-backend-url.com',
+        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/projects/, '/projects'),
