@@ -22,7 +22,7 @@ function App() {
         </Route>
 
         {/* Default Path - Redirect to users */}
-        <Route path="/" element={<Navigate to="/users" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
