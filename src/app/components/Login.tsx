@@ -1,5 +1,6 @@
+// src/app/components/Login.tsx
 import { useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, AlertCircle } from 'lucide-react';
 import { authenService } from '../../services/authenService';
 import { apiClient } from '../../utils/apiClient';
 import { Progress } from './ui/progress';
@@ -11,13 +12,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/alert-dialog"; // ตรวจสอบ Path ของไฟล์ให้ถูกต้องตามโครงสร้างโปรเจกต์
+} from "./ui/alert-dialog";
+import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate } from 'react-router-dom';
-
-
-interface LoginProps {
-  onLogin: () => void;
-}
 
 export function Login() {
   const navigate = useNavigate();
@@ -32,12 +29,8 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // const handleSubmit = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (email && password) {
-  //     onLogin();
-  //   }
-  // };
+  // แสดง inline error แทน dialog
+  const [inlineError, setInlineError] = useState('');
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -51,36 +44,58 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset errors
+    setInlineError('');
+    setApiErrorMessage('');
+    
     setIsLoading(true);
-    setProgress(10); // เริ่มต้นที่ 10%
+    setProgress(10);
+    
     try { 
       const response = await authenService.login({ email, password });
-      console.log(response);
+      console.log('Login response:', response);
       
       setProgress(100);
-      // สมมติว่า Backend ส่ง { accessToken, refreshToken } กลับมา
-      if (response.refresh_token && response.access_token) {
-        apiClient.setTokens(response.accessToken, response.refreshToken);
-        setTimeout(() => navigate('/users'), 500);
-        console.log("success > " +response.status);
+      
+      // ตรวจสอบ response structure - รองรับหลายรูปแบบ
+      const accessToken = response.access_token || response.accessToken;
+      const refreshToken = response.refresh_token || response.refreshToken;
+      
+      if (accessToken && refreshToken) {
+        apiClient.setTokens(accessToken, refreshToken);
         
-        // window.location.assign('/dashboard');
+        // รอให้ progress bar เสร็จก่อน navigate
+        setTimeout(() => {
+          navigate('/users');
+        }, 500);
       } else {
         setIsLoading(false);
         setProgress(0);
-        const message = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-        setApiErrorMessage(message);
-        setIsAlertOpen(true);
+        
+        const message = response.message || 'Invalid response from server';
+        setInlineError(message);
+        console.error('Invalid login response:', response);
       }
     } catch (error: any) {
-      // 2. กรณี Error
+      console.error('Login error:', error);
       setIsLoading(false);
       setProgress(0);
+      
       const message = error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-      setApiErrorMessage(message);
-      setIsAlertOpen(true);
-    } finally {
-      // ไม่เซ็ต setIsLoading(false) ที่นี่ถ้าสำเร็จ เพราะเรากำลังจะ Redirect
+      
+      // แสดง error แบบ inline สำหรับ errors ทั่วไป
+      if (message.includes('connect') || 
+          message.includes('network') || 
+          message.includes('Unable to')) {
+        setInlineError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+      } else if (message.includes('credentials') || 
+                 message.includes('Invalid') ||
+                 message.includes('password')) {
+        setInlineError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      } else {
+        setInlineError(message);
+      }
     }
   };
 
@@ -91,15 +106,24 @@ export function Login() {
           <Progress value={progress} className="h-1 rounded-none bg-blue-100" />
         </div>
       )}
+      
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-lg mb-4">
             <Lock className="w-8 h-8 text-black" />
           </div>
-          <h1 className="text-3xl text-white mb-2"> NWL Centralize Back Office</h1>
+          <h1 className="text-3xl text-white mb-2">NWL Centralize Back Office</h1>
           <p className="text-white/50">Sign in to continue</p>
         </div>
+
+        {/* Inline Error Alert */}
+        {inlineError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{inlineError}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Login Form */}
         <div className="bg-white/5 rounded-lg border border-white/10 p-8">
@@ -109,10 +133,14 @@ export function Login() {
               <input
                 type="text"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors"
-                placeholder="Enter your username"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setInlineError(''); // Clear error when user types
+                }}
+                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                placeholder="Enter your email"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -121,55 +149,34 @@ export function Login() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setInlineError('');
+                }}
+                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors disabled:opacity-50"
                 placeholder="Enter your password"
                 required
+                disabled={isLoading}
               />
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-white text-black rounded-lg hover:bg-white/90 transition-colors mb-4"
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-white text-black rounded-lg hover:bg-white/90 transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
-
-          {/* Divider */}
-          {/* <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-neutral-900 text-white/50">Or continue with</span>
-            </div>
-          </div> */}
-          {/* <button
-            onClick={handleMicrosoftLogin}
-            className="w-full px-4 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center gap-3 border border-white/10"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0 0H10.8571V10.8571H0V0Z" fill="#F25022"/>
-              <path d="M12.1429 0H23V10.8571H12.1429V0Z" fill="#7FBA00"/>
-              <path d="M0 12.1429H10.8571V23H0V12.1429Z" fill="#00A4EF"/>
-              <path d="M12.1429 12.1429H23V23H12.1429V12.1429Z" fill="#FFB900"/>
-            </svg>
-            <span>Sign in with Microsoft</span>
-          </button> */}
-
-          {/* <p className="text-white/30 text-xs text-center mt-6">
-            Using Microsoft Azure AD SAML 2.0 Authentication
-          </p> */}
         </div>
+        
         <div className="text-center mt-6">
           <p className="text-white/30 text-sm">
             © 2026 Back Office. All rights reserved.
           </p>
         </div>
 
-
-
+        {/* Dialog Alert สำหรับ critical errors */}
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -185,7 +192,6 @@ export function Login() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
       </div>
     </div>
   );
