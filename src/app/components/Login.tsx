@@ -1,6 +1,5 @@
-// src/app/components/Login.tsx
 import { useEffect, useState } from 'react';
-import { Lock, AlertCircle } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { authenService } from '../../services/authenService';
 import { apiClient } from '../../utils/apiClient';
 import { Progress } from './ui/progress';
@@ -13,8 +12,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
+
+interface JwtPayload {
+  role?: string;
+  [key: string]: any;
+}
+
+interface LoginProps {
+  onLogin: () => void;
+}
 
 export function Login() {
   const navigate = useNavigate();
@@ -29,8 +37,9 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // แสดง inline error แทน dialog
-  const [inlineError, setInlineError] = useState('');
+  // States สำหรับ Validation
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -42,60 +51,110 @@ export function Login() {
     return () => clearInterval(timer);
   }, [isLoading, progress]);
 
+  // ฟังก์ชันตรวจสอบ Email Format
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setEmailError('กรุณากรอกอีเมล');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('รูปแบบอีเมลไม่ถูกต้อง');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  // ฟังก์ชันตรวจสอบ Password
+  const validatePassword = (password: string): boolean => {
+    if (!password) {
+      setPasswordError('กรุณากรอกรหัสผ่าน');
+      return false;
+    }
+    if (password.length < 6) {
+      setPasswordError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
+
+  // ฟังก์ชันตรวจสอบ Role จาก JWT Token
+  const validateRole = (token: string): boolean => {
+    try {
+      const decoded = jwtDecode<JwtPayload>(token);
+      console.log('Decoded JWT:', decoded);
+      
+      // if (decoded.role !== 'SYSTEM_ADMIN') {
+      if (decoded.role !== 'PROJECT_ADMIN') {
+        setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
+        setIsAlertOpen(true);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('JWT Decode Error:', error);
+      setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
+      setIsAlertOpen(true);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Reset errors
-    setInlineError('');
-    setApiErrorMessage('');
-    
+
+    // Validate Input ก่อน Submit
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+
     setIsLoading(true);
     setProgress(10);
     
     try { 
       const response = await authenService.login({ email, password });
-      console.log('Login response:', response);
+      console.log('Login Response:', response);
       
-      setProgress(100);
-      
-      // ตรวจสอบ response structure - รองรับหลายรูปแบบ
-      const accessToken = response.access_token || response.accessToken;
-      const refreshToken = response.refresh_token || response.refreshToken;
-      
-      if (accessToken && refreshToken) {
-        apiClient.setTokens(accessToken, refreshToken);
+      setProgress(50);
+
+      // ตรวจสอบว่ามี Token ในการตอบกลับ
+      if (response.refresh_token && response.access_token) {
+        setProgress(70);
         
-        // รอให้ progress bar เสร็จก่อน navigate
-        setTimeout(() => {
-          navigate('/users');
-        }, 500);
+        // ตรวจสอบ Role จาก Access Token
+        const hasPermission = validateRole(response.access_token);
+        
+        if (!hasPermission) {
+          setIsLoading(false);
+          setProgress(0);
+          // ล้าง Token ถ้าไม่มีสิทธิ์
+          apiClient.clearTokens();
+          return;
+        }
+
+        setProgress(100);
+        // บันทึก Token
+        apiClient.setTokens(response.access_token, response.refresh_token);
+        
+        // Navigate ไปหน้า Users
+        setTimeout(() => navigate('/users'), 500);
       } else {
         setIsLoading(false);
         setProgress(0);
-        
-        const message = response.message || 'Invalid response from server';
-        setInlineError(message);
-        console.error('Invalid login response:', response);
+        const message = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+        setApiErrorMessage(message);
+        setIsAlertOpen(true);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       setIsLoading(false);
       setProgress(0);
-      
       const message = error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-      
-      // แสดง error แบบ inline สำหรับ errors ทั่วไป
-      if (message.includes('connect') || 
-          message.includes('network') || 
-          message.includes('Unable to')) {
-        setInlineError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
-      } else if (message.includes('credentials') || 
-                 message.includes('Invalid') ||
-                 message.includes('password')) {
-        setInlineError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-      } else {
-        setInlineError(message);
-      }
+      setApiErrorMessage(message);
+      setIsAlertOpen(true);
     }
   };
 
@@ -106,24 +165,15 @@ export function Login() {
           <Progress value={progress} className="h-1 rounded-none bg-blue-100" />
         </div>
       )}
-      
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-lg mb-4">
             <Lock className="w-8 h-8 text-black" />
           </div>
-          <h1 className="text-3xl text-white mb-2">NWL Centralize Back Office</h1>
+          <h1 className="text-3xl text-white mb-2"> NWL Centralize Back Office</h1>
           <p className="text-white/50">Sign in to continue</p>
         </div>
-
-        {/* Inline Error Alert */}
-        {inlineError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{inlineError}</AlertDescription>
-          </Alert>
-        )}
 
         {/* Login Form */}
         <div className="bg-white/5 rounded-lg border border-white/10 p-8">
@@ -135,13 +185,18 @@ export function Login() {
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  setInlineError(''); // Clear error when user types
+                  setEmailError('');
                 }}
-                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                onBlur={() => validateEmail(email)}
+                className={`w-full px-4 py-3 bg-black border ${
+                  emailError ? 'border-red-500' : 'border-white/10'
+                } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your email"
                 required
-                disabled={isLoading}
               />
+              {emailError && (
+                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+              )}
             </div>
 
             <div className="mb-6">
@@ -151,13 +206,18 @@ export function Login() {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
-                  setInlineError('');
+                  setPasswordError('');
                 }}
-                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors disabled:opacity-50"
+                onBlur={() => validatePassword(password)}
+                className={`w-full px-4 py-3 bg-black border ${
+                  passwordError ? 'border-red-500' : 'border-white/10'
+                } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your password"
                 required
-                disabled={isLoading}
               />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
 
             <button
@@ -169,14 +229,13 @@ export function Login() {
             </button>
           </form>
         </div>
-        
+
         <div className="text-center mt-6">
           <p className="text-white/30 text-sm">
             © 2026 Back Office. All rights reserved.
           </p>
         </div>
 
-        {/* Dialog Alert สำหรับ critical errors */}
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>

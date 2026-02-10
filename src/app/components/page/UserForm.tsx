@@ -41,8 +41,13 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     
+<<<<<<< HEAD
     if (!values.firstName || values.firstName.trim().length < 2) {
       newErrors.firstName = "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร";
+=======
+    if (!values.name || values.name.trim().length < 2) {
+      newErrors.name = "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร";
+>>>>>>> 6950cfc1fe59e028e15fc2fc498457450164e697
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,7 +81,11 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
       
       // Success
       setSubmitSuccess(true);
+<<<<<<< HEAD
       setValues({ firstName: '', email: '', role: 'user' });
+=======
+      setValues({ name: '', email: '', role: 'user' });
+>>>>>>> 6950cfc1fe59e028e15fc2fc498457450164e697
       setErrors({});
       
       // แจ้งให้ parent component รู้ว่าสำเร็จแล้ว
@@ -124,6 +133,7 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
             </Label>
             <Input 
               id="name"
+<<<<<<< HEAD
               value={values.firstName}
               onChange={(e) => {
                 setValues({...values, firstName: e.target.value});
@@ -140,6 +150,24 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.firstName}
+=======
+              value={values.name}
+              onChange={(e) => {
+                setValues({...values, name: e.target.value});
+                // Clear error when user starts typing
+                if (errors.name) {
+                  setErrors({...errors, name: undefined});
+                }
+              }}
+              className={errors.name ? "border-red-500" : ""}
+              placeholder="กรอกชื่อ-นามสกุล"
+              disabled={isSubmitting}
+            />
+            {errors.name && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.name}
+>>>>>>> 6950cfc1fe59e028e15fc2fc498457450164e697
               </p>
             )}
           </div>

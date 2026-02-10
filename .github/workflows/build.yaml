@@ -1,0 +1,82 @@
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ns:
+        description: 'Select Namespace'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [ dev, test ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    env:
+      REGISTRY: 10.15.15.116:30500
+      IMAGE_NAME: nwl-backoffice-web
+      NS: ${{ inputs.target_ns }}
+
+    steps:
+    - name: Checkout Application Code
+      uses: actions/checkout@v4
+
+    - name: Set Image Tag
+      run: echo "TAG=$(date +%s)-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build --target runner -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }} .
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+
+    - name: Update Helm Values (GitOps via SSH)
+      run: |
+        # 1. Setup SSH
+        export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+
+        # 2. Clone Manifest Repo
+        git clone git@github.com:NetworkLink2563/nwl-k8s-manifest.git manifest-repo
+        cd manifest-repo
+
+        # 3. Configure Git Identity
+        git config user.name "nwl-runner"
+        git config user.email "runner@nwl.local"
+
+        # 4. Define Target File (Helm Structure)
+        TARGET_FILE="apps/nwl-backoffice-web/values-${{ env.NS }}.yaml"
+
+        # 5. Update Tag
+        if [ -f "$TARGET_FILE" ]; then
+          sed -i "s/tag: .*/tag: ${{ env.TAG }}/" "$TARGET_FILE"
+          
+          git add "$TARGET_FILE"
+          git commit -m "Deploy ${{ env.NS }}: Update nwl-backoffice-web image to ${{ env.TAG }}"
+          git push origin main
+        else
+          echo "::error::File $TARGET_FILE not found. Check manifest structure."
+          exit 1
+        fi
+
+    - name: Cleanup on Failure
+      if: failure()
+      run: |
+        echo "Deployment failed. Gathering debug information..."
+
+        echo "=== Deployment Status ==="
+        kubectl get deployment/${{ env.IMAGE_NAME }} -n ${{ env.NS }} || true
+
+        echo "=== Pod Status ==="
+        kubectl get pods -n ${{ env.NS }} -l app=${{ env.IMAGE_NAME }} || true
+
+        echo "=== Recent Events ==="
+        kubectl get events -n ${{ env.NS }} --sort-by='.lastTimestamp' --field-selector type!=Normal | tail -20 || true
+
+        echo "=== Pod Logs ==="
+        kubectl logs -n ${{ env.NS }} -l app=${{ env.IMAGE_NAME }} --tail=50 --prefix=true || true
+
+        echo "=== Init Container Logs (if migration failed) ==="
+        POD_NAME=$(kubectl get pods -n ${{ env.NS }} -l app=${{ env.IMAGE_NAME }} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+        if [ -n "$POD_NAME" ]; then
+          kubectl logs $POD_NAME -n ${{ env.NS }} -c db-migrate --tail=50 || echo "No init container logs"
+        fi
