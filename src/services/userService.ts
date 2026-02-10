@@ -1,41 +1,64 @@
 // src/services/userService.ts
 import { apiClient } from '../utils/apiClient';
 
-// export const userService = {
-//   /**
-//    * สร้าง User ใหม่ในระบบ
-//    * [cite: 721, 727]
-//    */
-//   create: async (userData: object) => {
-//     return await apiClient.post('/create', userData);
-//   },
-
-//   /**
-//    * ดึงรายการ User ทั้งหมด
-//    * [cite: 733, 782]
-//    */
-//   list: async () => {
-//     return await apiClient.get('/list');
-//   }
-// };
-
 export interface User {
-  id?: string;
   name: string;
+  id?: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
 }
 
 export const userService = {
-  // ดึงรายการ User ทั้งหมด [cite: 715, 718]
+  // ดึงรายการ User ทั้งหมด
   async listUsers(): Promise<User[]> {
-    const response = await apiClient.get('users/list');
-    return response.data;
+    try {
+      const response = await apiClient.get('/users/list');
+      
+      // ตรวจสอบว่า response มี data หรือไม่
+      if (!response) {
+        console.warn('Empty response from API');
+        return [];
+      }
+
+      // ตรวจสอบว่า response.data เป็น array หรือไม่
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      // กรณี response เป็น array โดยตรง
+      if (Array.isArray(response)) {
+        return response;
+      }
+
+      console.warn('Unexpected response format:', response);
+      return [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
   },
 
-  // สร้าง User ใหม่ [cite: 704, 706]
+  // สร้าง User ใหม่
   async createUser(userData: User): Promise<User> {
-    const response = await apiClient.post('users/create', userData);
-    return response.data;
+    try {
+      const response = await apiClient.post('/users/create', userData);
+      
+      // ตรวจสอบว่ามี data ใน response หรือไม่
+      if (response.data) {
+        return response.data;
+      }
+      
+      // กรณี response เป็น object โดยตรง
+      if (response.email) {
+        return response;
+      }
+
+      throw new Error('Invalid response from server');
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 };

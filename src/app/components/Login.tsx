@@ -11,9 +11,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/alert-dialog"; // ตรวจสอบ Path ของไฟล์ให้ถูกต้องตามโครงสร้างโปรเจกต์
+} from "./ui/alert-dialog";
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
+interface JwtPayload {
+  role?: string;
+  [key: string]: any;
+}
 
 interface LoginProps {
   onLogin: () => void;
@@ -32,12 +37,9 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // const handleSubmit = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (email && password) {
-  //     onLogin();
-  //   }
-  // };
+  // States สำหรับ Validation
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -49,22 +51,99 @@ export function Login() {
     return () => clearInterval(timer);
   }, [isLoading, progress]);
 
+  // ฟังก์ชันตรวจสอบ Email Format
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setEmailError('กรุณากรอกอีเมล');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('รูปแบบอีเมลไม่ถูกต้อง');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  // ฟังก์ชันตรวจสอบ Password
+  const validatePassword = (password: string): boolean => {
+    if (!password) {
+      setPasswordError('กรุณากรอกรหัสผ่าน');
+      return false;
+    }
+    if (password.length < 6) {
+      setPasswordError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
+
+  // ฟังก์ชันตรวจสอบ Role จาก JWT Token
+  const validateRole = (token: string): boolean => {
+    try {
+      const decoded = jwtDecode<JwtPayload>(token);
+      console.log('Decoded JWT:', decoded);
+      // console.log(decoded.role);
+      
+      
+      if (decoded.role !== 'SYSTEM_ADMIN') {
+      // if (decoded.roles !== 'PROJECT_ADMIN') {
+        setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
+        setIsAlertOpen(true);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('JWT Decode Error:', error);
+      setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
+      setIsAlertOpen(true);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate Input ก่อน Submit
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+
     setIsLoading(true);
-    setProgress(10); // เริ่มต้นที่ 10%
+    setProgress(10);
+    
     try { 
       const response = await authenService.login({ email, password });
-      console.log(response);
+      console.log('Login Response:', response);
       
-      setProgress(100);
-      // สมมติว่า Backend ส่ง { accessToken, refreshToken } กลับมา
+      setProgress(50);
+
+      // ตรวจสอบว่ามี Token ในการตอบกลับ
       if (response.refresh_token && response.access_token) {
-        apiClient.setTokens(response.accessToken, response.refreshToken);
-        setTimeout(() => navigate('/users'), 500);
-        console.log("success > " +response.status);
+        setProgress(70);
         
-        // window.location.assign('/dashboard');
+        // ตรวจสอบ Role จาก Access Token
+        const hasPermission = validateRole(response.access_token);
+        
+        if (!hasPermission) {
+          setIsLoading(false);
+          setProgress(0);
+          // ล้าง Token ถ้าไม่มีสิทธิ์
+          apiClient.clearTokens();
+          return;
+        }
+
+        setProgress(100);
+        // บันทึก Token
+        apiClient.setTokens(response.access_token, response.refresh_token);
+        
+        // Navigate ไปหน้า Users
+        setTimeout(() => navigate('/users'), 500);
       } else {
         setIsLoading(false);
         setProgress(0);
@@ -73,14 +152,11 @@ export function Login() {
         setIsAlertOpen(true);
       }
     } catch (error: any) {
-      // 2. กรณี Error
       setIsLoading(false);
       setProgress(0);
       const message = error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
       setApiErrorMessage(message);
       setIsAlertOpen(true);
-    } finally {
-      // ไม่เซ็ต setIsLoading(false) ที่นี่ถ้าสำเร็จ เพราะเรากำลังจะ Redirect
     }
   };
 
@@ -109,11 +185,20 @@ export function Login() {
               <input
                 type="text"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors"
-                placeholder="Enter your username"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError('');
+                }}
+                onBlur={() => validateEmail(email)}
+                className={`w-full px-4 py-3 bg-black border ${
+                  emailError ? 'border-red-500' : 'border-white/10'
+                } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
+                placeholder="Enter your email"
                 required
               />
+              {emailError && (
+                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+              )}
             </div>
 
             <div className="mb-6">
@@ -121,54 +206,37 @@ export function Login() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                }}
+                onBlur={() => validatePassword(password)}
+                className={`w-full px-4 py-3 bg-black border ${
+                  passwordError ? 'border-red-500' : 'border-white/10'
+                } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your password"
                 required
               />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+              )}
             </div>
 
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-white text-black rounded-lg hover:bg-white/90 transition-colors mb-4"
+              disabled={isLoading}
+              className="w-full px-4 py-3 bg-white text-black rounded-lg hover:bg-white/90 transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
-
-          {/* Divider */}
-          {/* <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-neutral-900 text-white/50">Or continue with</span>
-            </div>
-          </div> */}
-          {/* <button
-            onClick={handleMicrosoftLogin}
-            className="w-full px-4 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors flex items-center justify-center gap-3 border border-white/10"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0 0H10.8571V10.8571H0V0Z" fill="#F25022"/>
-              <path d="M12.1429 0H23V10.8571H12.1429V0Z" fill="#7FBA00"/>
-              <path d="M0 12.1429H10.8571V23H0V12.1429Z" fill="#00A4EF"/>
-              <path d="M12.1429 12.1429H23V23H12.1429V12.1429Z" fill="#FFB900"/>
-            </svg>
-            <span>Sign in with Microsoft</span>
-          </button> */}
-
-          {/* <p className="text-white/30 text-xs text-center mt-6">
-            Using Microsoft Azure AD SAML 2.0 Authentication
-          </p> */}
         </div>
+
         <div className="text-center mt-6">
           <p className="text-white/30 text-sm">
             © 2026 Back Office. All rights reserved.
           </p>
         </div>
-
-
 
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
@@ -185,7 +253,6 @@ export function Login() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
       </div>
     </div>
   );
