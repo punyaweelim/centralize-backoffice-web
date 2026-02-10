@@ -1,7 +1,7 @@
 // src/utils/apiClient.ts
 const BASE_URL = import.meta.env.VITE_USE_PROXY === 'true' 
   ? '' // ใช้ relative path เมื่อผ่าน proxy
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+  : (import.meta.env.APP_USER_API_URL || 'http://localhost:3000');
 
 // Flag เพื่อป้องกันการ refresh ซ้ำซ้อน
 let isRefreshing = false;
@@ -170,7 +170,7 @@ export const apiClient = {
     } catch (error: any) {
       // ตรวจสอบว่าเป็น network error หรือไม่
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please check your internet connection.');
+        throw new Error('Unable to connect to server.');
       }
       
       console.error('API Client Error:', error);
