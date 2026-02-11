@@ -12,6 +12,7 @@ import {
 } from "../ui/table"
 import { Badge } from "../ui/badge"
 import { deviceService, Device } from '../../../services/deviceService'
+import { Icon, Pencil, Trash } from 'lucide-react'
 
 export function DeviceList({ refreshKey }: { refreshKey: number }) {
   const [devices, setDevices] = useState<Device[]>([])
@@ -24,6 +25,8 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
       try {
         setIsLoading(true)
         const data = await deviceService.listDevices()
+        console.log('data', data);
+        
         setDevices(data)
         setError(null)
       } catch (err) {
@@ -36,6 +39,22 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
 
     fetchDevices()
   }, [refreshKey])
+
+
+  const fetchDevicesID = async (id: string) => {
+      try {
+        setIsLoading(true)
+        const data = await deviceService.getDeviceById(id)
+        console.log('data', data);
+        setDevices(data)
+        setError(null)
+      } catch (err) {
+        setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
+        console.error(err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -74,7 +93,8 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
             <TableHead className="w-[200px]">ชื่ออุปกรณ์</TableHead>
             <TableHead>ประเภท</TableHead>
             <TableHead>Serial Number</TableHead>
-            <TableHead className="text-right">สถานะ</TableHead>
+            <TableHead className="text-center">สถานะ</TableHead>
+            <TableHead >การจัดการ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,10 +114,16 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
                   </span>
                 </TableCell>
                 <TableCell className="font-mono text-sm">{device.serialNumber}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-center">
                   <Badge variant={getStatusVariant(device.status)}>
                     {device.status}
                   </Badge>
+                </TableCell>
+                 <TableCell className="text-center">
+                  <div className="flex justify-left gap-2">
+                  <a><Pencil name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
+                  <a><Trash name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
+                </div>
                 </TableCell>
               </TableRow>
             ))

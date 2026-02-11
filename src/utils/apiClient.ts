@@ -1,7 +1,32 @@
-// src/utils/apiClient.ts
-const BASE_URL = import.meta.env.VITE_USE_PROXY === 'true' 
-  ? '' // ใช้ relative path เมื่อผ่าน proxy
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+// import axios from "axios";
+// import { getConfig } from "@/config";
+
+// const config = await getConfig();
+
+// export const systemApi = axios.create({
+//   baseURL: config.APP_SYSTEM_API_URL,
+// });
+
+// export const userApi = axios.create({
+//   baseURL: config.APP_USER_API_URL,
+// });
+
+
+
+const USE_PROXY = import.meta.env.APP_USE_PROXY === 'true';
+
+const USER_API = USE_PROXY
+  ? ''
+  : import.meta.env.APP_USER_API_URL;
+
+const SYSTEM_API = USE_PROXY
+  ? ''
+  : import.meta.env.APP_SYSTEM_API_URL;
+
+function resolveBaseUrl(endpoint: string) {
+  if (endpoint.startsWith('/system')) return SYSTEM_API;
+  return USER_API;
+}
 
 // Flag เพื่อป้องกันการ refresh ซ้ำซ้อน
 let isRefreshing = false;
@@ -41,7 +66,8 @@ export const apiClient = {
         ...options.headers,
       };
 
-      let response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+      // let response = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+      let response = await fetch(`${resolveBaseUrl(endpoint)}${endpoint}`, { ...options, headers });
 
       // กรณี Access Token หมดอายุ (401)
       if (response.status === 401) {
@@ -54,7 +80,7 @@ export const apiClient = {
             subscribeTokenRefresh(async (newToken: string) => {
               try {
                 // ส่ง request ใหม่ด้วย token ที่ refresh แล้ว
-                const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
+                const retryResponse = await fetch(`${resolveBaseUrl(endpoint)}${endpoint}`, {
                   ...options,
                   headers: {
                     ...headers,
@@ -90,7 +116,7 @@ export const apiClient = {
 
         try {
           // เรียก refresh token endpoint
-          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
+          const refreshResponse = await fetch(`${USER_API}/auth/refresh-token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken })
@@ -117,7 +143,7 @@ export const apiClient = {
           isRefreshing = false;
 
           // ส่ง request เดิมใหม่ด้วย token ใหม่
-          response = await fetch(`${BASE_URL}${endpoint}`, {
+          response = await fetch(`${resolveBaseUrl(endpoint)}${endpoint}`, {
             ...options,
             headers: {
               ...headers,
