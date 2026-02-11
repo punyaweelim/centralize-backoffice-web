@@ -6,25 +6,32 @@ import MainLayout from './components/MainLayout';
 import UserPage from './components/UserPage';
 import DevicePage from './components/DevicePage';
 import ProjectPage from './components/ProjectPage';
+import AuthListener from "./components/AuthListener";
+import RootRedirect from "./components/page/RootRedirect";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public: หน้า Login ไม่ต้องมี Sidebar */}
-        <Route path="/login" element={<Login />} />
+   <BrowserRouter>
+  <AuthListener>
+    <Routes>
+      <Route path="/" element={<RootRedirect />} />
 
-        {/* Protected: ทุกหน้าที่ต้องผ่านการตรวจสอบ และใช้ Layout ร่วมกัน */}
-        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-          <Route path="/users" element={<UserPage />} />
-          <Route path="/devices" element={<DevicePage />} />
-          <Route path="/projects" element={<ProjectPage />} />
-        </Route>
+      <Route path="/login" element={<Login />} />
 
-        {/* Default Path - Redirect to users */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </BrowserRouter>
+      <Route
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/users" element={<UserPage />} />
+        <Route path="/devices" element={<DevicePage />} />
+        <Route path="projects" element={<ProjectPage />} />
+      </Route>
+    </Routes>
+  </AuthListener>
+</BrowserRouter>
   );
 }
 

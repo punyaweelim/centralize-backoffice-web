@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { authenService } from '../../services/authenService';
-import { apiClient } from '../../utils/apiClient';
+// import { apiClient } from '../../utils/apiClient';
 import { Progress } from './ui/progress';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "./ui/alert-dialog";
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+// } from "./ui/alert-dialog";
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 
 interface JwtPayload {
-  role?: string;
+  roles?: string;
   [key: string]: any;
 }
 
@@ -30,8 +30,8 @@ export function Login() {
   const [password, setPassword] = useState('');
 
   // State สำหรับจัดการ Alert Dialog
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [apiErrorMessage, setApiErrorMessage] = useState('');
+  // const [isAlertOpen, setIsAlertOpen] = useState(false);
+  // const [apiErrorMessage, setApiErrorMessage] = useState('');
 
   // States สำหรับ Loading และ Progress
   const [isLoading, setIsLoading] = useState(false);
@@ -90,75 +90,57 @@ export function Login() {
       
       // if (decoded.role !== 'SYSTEM_ADMIN') {
       if (decoded.roles !== 'SYSTEM_ADMIN') {
-        setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
-        setIsAlertOpen(true);
+        // setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
+        // setIsAlertOpen(true);
         return false;
       }
       return true;
     } catch (error) {
       console.error('JWT Decode Error:', error);
-      setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
-      setIsAlertOpen(true);
+      // setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
+      // setIsAlertOpen(true);
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Validate Input ก่อน Submit
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
+  const isEmailValid = validateEmail(email);
+  const isPasswordValid = validatePassword(password);
+  if (!isEmailValid || !isPasswordValid) return;
 
-    if (!isEmailValid || !isPasswordValid) {
-      return;
-    }
+  setIsLoading(true);
+  setProgress(20);
 
-    setIsLoading(true);
-    setProgress(10);
-    
-    try { 
-      const response = await authenService.login({ email, password });
-      console.log('Login Response:', response);
-      
-      setProgress(50);
+  try {
+    const data = await authenService.login({ email, password });
 
-      // ตรวจสอบว่ามี Token ในการตอบกลับ
-      if (response.refresh_token && response.access_token) {
-        setProgress(70);
-        
-        // ตรวจสอบ Role จาก Access Token
-        const hasPermission = validateRole(response.access_token);
-        
-        if (!hasPermission) {
-          setIsLoading(false);
-          setProgress(0);
-          // ล้าง Token ถ้าไม่มีสิทธิ์
-          apiClient.clearTokens();
-          return;
-        }
+    setProgress(60);
 
-        setProgress(100);
-        // บันทึก Token
-        apiClient.setTokens(response.access_token, response.refresh_token);
-        
-        // Navigate ไปหน้า Users
-        setTimeout(() => navigate('/users'), 500);
-      } else {
-        setIsLoading(false);
-        setProgress(0);
-        const message = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-        setApiErrorMessage(message);
-        setIsAlertOpen(true);
+    // optional role check
+    if (data.access_token) {
+      const decoded = jwtDecode<JwtPayload>(data.access_token);
+
+      if (decoded.roles !== 'SYSTEM_ADMIN') {
+        throw new Error('คุณไม่มี Permission ใช้ Back Office');
       }
-    } catch (error: any) {
-      setIsLoading(false);
-      setProgress(0);
-      const message = error?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-      setApiErrorMessage(message);
-      setIsAlertOpen(true);
     }
-  };
+
+    setProgress(100);
+
+    setTimeout(() => {
+      navigate('/users');
+    }, 400);
+
+  } catch (err) {
+    // DO NOTHING
+    // interceptor will show popup
+  } finally {
+    setIsLoading(false);
+    setProgress(0);
+  }
+};
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -238,7 +220,7 @@ export function Login() {
           </p>
         </div>
 
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        {/* <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-destructive">Login Failed</AlertDialogTitle>
@@ -252,7 +234,7 @@ export function Login() {
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
-        </AlertDialog>
+        </AlertDialog> */}
       </div>
     </div>
   );

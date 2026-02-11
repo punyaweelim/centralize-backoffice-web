@@ -1,5 +1,6 @@
 // src/services/userService.ts
 import { apiClient } from '../utils/apiClient';
+import { authApi } from "@/utils/apiInstance";
 
 export interface User {
   name: string;
@@ -14,7 +15,7 @@ export const userService = {
   // ดึงรายการ User ทั้งหมด
   async listUsers(): Promise<User[]> {
     try {
-      const response = await apiClient.get('/users/list');
+      const response = await authApi.get('/users/list');
       
       // ตรวจสอบว่า response มี data หรือไม่
       if (!response) {
@@ -43,7 +44,7 @@ export const userService = {
   // สร้าง User ใหม่
   async createUser(userData: User): Promise<User> {
     try {
-      const response = await apiClient.post('/users/create', userData);
+      const response = await authApi.post('/users/create', userData);
       
       // ตรวจสอบว่ามี data ใน response หรือไม่
       if (response.data) {
@@ -51,9 +52,9 @@ export const userService = {
       }
       
       // กรณี response เป็น object โดยตรง
-      if (response.email) {
-        return response;
-      }
+      // if (response.email) {
+      //   return response;
+      // }
 
       throw new Error('Invalid response from server');
     } catch (error) {
