@@ -73,8 +73,9 @@ export const deviceService = {
   },
 
   // ลบ Device
-  async deleteDevice(id: string): Promise<void> {
-    await sysApi.delete(`management/devices/${id}`, {});
+  async deleteDevice(id: string): Promise<successMessage> {
+    const response = await sysApi.delete(`management/devices/${id}`, {});
+    return response.data;
   },
 };
 

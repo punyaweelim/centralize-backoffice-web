@@ -1,6 +1,7 @@
 // src/services/projectService.ts
 // import { apiClient } from '../utils/apiClient';
 import { authApi } from "@/utils/apiInstance";
+import { successMessage } from "./deviceService";
 
 
 export interface Project {
@@ -14,6 +15,16 @@ export interface Project {
   assignedUsers?: string[];
   assignedDevices?: string[];
 }
+
+export interface ProjectFormData {
+  name: string;
+  description: string;
+  code: string;
+  locationX: string;
+  locationY: string;
+  status: string;
+}
+
 
 export const projectService = {
   // ดึงรายการ Project ทั้งหมด
@@ -34,8 +45,16 @@ export const projectService = {
   },
 
   // สร้าง Project ใหม่
-  async createProject(projectData: Project): Promise<Project> {
-    const response = await authApi.post('projects/create', projectData);
+  async createProject(projectData: ProjectFormData): Promise<successMessage> {
+    const rawData = {
+      name: projectData.name,
+      description: projectData.description, 
+      code: projectData.code,
+      latitude: projectData.locationY,
+      longitude: projectData.locationX,
+      status: projectData.status,
+    }
+    const response = await authApi.post('management/projects', rawData);
     return response.data;
   },
 

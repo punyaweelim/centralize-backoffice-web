@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { projectService } from "../../../services/projectService";
+import { showSuccessPopup, showWarningPopup } from "@/utils/alertPopup";
 
 interface ProjectFormValues {
   name: string;
@@ -82,8 +83,12 @@ export function ProjectForm({ onSuccess }: { onSuccess: () => void }) {
     if (validate()) {
       try {
         setIsSubmitting(true);
-        await projectService.createProject(values);
-        setValues({ 
+        console.log('value', values);
+        
+        const res = await projectService.createProject(values);
+         if (res.status === 201) {
+                showSuccessPopup(res.message);
+                 setValues({ 
           name: '', 
           description: '', 
           code: '', 
@@ -91,8 +96,11 @@ export function ProjectForm({ onSuccess }: { onSuccess: () => void }) {
           locationY: '', 
           status: 'Active' 
         });
-        setErrors({});
-        onSuccess();
+                onSuccess();
+              }
+       
+        // setErrors({});
+        // onSuccess();
       } catch (error) {
         console.error("Failed to create project", error);
       } finally {

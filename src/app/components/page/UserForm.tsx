@@ -13,11 +13,13 @@ import {
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { userService } from "../../../services/userService";
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { showSuccessPopup, showWarningPopup } from "@/utils/alertPopup";
+
 
 interface UserFormValues {
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'sysAdmin';
 }
 
 interface FormErrors {
@@ -30,7 +32,7 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
   const [values, setValues] = useState<UserFormValues>({
     name: '',
     email: '',
-    role: 'user'
+    role: 'sysAdmin'
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,24 +74,33 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
     setIsSubmitting(true);
 
     try {
-      await userService.createUser(values);
+      const res = await userService.createUser(values);
+
+       if (res.status === 200 || res.status === 201) {
+              showSuccessPopup(res.message);
+              setValues({ name: '', email: '', role: 'sysAdmin' });
+
+              onSuccess();
+            } else {
+              showWarningPopup(res.message);
+            }
       
       // Success
-      setSubmitSuccess(true);
-      setValues({ name: '', email: '', role: 'user' });
+      // setSubmitSuccess(true);
+      // setValues({ name: '', email: '', role: 'user' });
       setErrors({});
       
       // แจ้งให้ parent component รู้ว่าสำเร็จแล้ว
-      onSuccess();
+      // onSuccess();
 
       // ซ่อน success message หลัง 3 วินาที
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 3000);
+      // setTimeout(() => {
+      //   setSubmitSuccess(false);
+      // }, 3000);
 
     } catch (error: any) {
       console.error("Failed to create user", error);
-      setSubmitError(error?.message || "ไม่สามารถสร้างผู้ใช้งานได้ กรุณาลองใหม่อีกครั้ง");
+      // setSubmitError(error?.message || "ไม่สามารถสร้างผู้ใช้งานได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsSubmitting(false);
     }
@@ -179,20 +190,20 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
           </Label>
           <Select 
             value={values.role} 
-            onValueChange={(val: 'admin' | 'user') => {
+            onValueChange={(val: 'sysAdmin') => {
               setValues({...values, role: val});
               if (errors.role) {
                 setErrors({...errors, role: undefined});
               }
             }}
-            disabled={isSubmitting}
+            disabled
           >
             <SelectTrigger className={errors.role ? "border-red-500" : ""}>
               <SelectValue placeholder="เลือกบทบาท" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="sysAdmin">System Admin</SelectItem>
+              {/* <SelectItem value="admin">Admin</SelectItem> */}
             </SelectContent>
           </Select>
           {errors.role && (

@@ -2,6 +2,7 @@
 import { extend } from "leaflet";
 import { apiClient } from "../utils/apiClient";
 import { authApi } from "@/utils/apiInstance";
+import { successMessage } from "./deviceService";
 
 export interface User {
   // createdAt: string;
@@ -15,13 +16,11 @@ export interface User {
   // updatedAt: string;
 }
 
-// export interface UserList {
-//   data: User;
-//   page: number;
-//   perPage: string;
-//   totalItems: string;
-//   totalPages: string;
-// }
+export interface createUser {
+  name: string;
+  email: string;
+  role: string;
+}
 
 export const userService = {
   // ดึงรายการ User ทั้งหมด
@@ -65,9 +64,9 @@ export const userService = {
   },
 
   // สร้าง User ใหม่
-  async createUser(userData: User): Promise<User> {
+  async createUser(userData: createUser): Promise<successMessage> {
     try {
-      const response = await authApi.post("/users/create", userData);
+      const response = await authApi.post("management/users", userData);
 
       // ตรวจสอบว่ามี data ใน response หรือไม่
       if (response.data) {

@@ -1,4 +1,4 @@
-import Swal, { SweetAlertOptions } from "sweetalert2";
+import Swal, { SweetAlertOptions, SweetAlertResult  } from "sweetalert2";
 
 export function showErrorPopup(message: string) {
   const options: SweetAlertOptions = {
@@ -14,7 +14,7 @@ export function showErrorPopup(message: string) {
 export function showSuccessPopup(message: string) {
   const options: SweetAlertOptions = {
     icon: "success",
-    title: "Success",
+    // title: "Success",
     text: message,
     confirmButtonColor: "#30a702",
   };
@@ -31,4 +31,17 @@ export function showWarningPopup(message: string) {
   };
 
   Swal.fire(options);
+}
+
+
+export function showConfirmPopup(message: string): Promise<SweetAlertResult> {
+  return Swal.fire({
+    title: message + "?",
+    // text: "You won't be able to revert this!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#30a702",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, delete it!"
+  });
 }

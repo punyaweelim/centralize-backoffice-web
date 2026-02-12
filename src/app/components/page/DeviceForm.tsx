@@ -133,8 +133,6 @@ export function DeviceForm({
         showSuccessPopup(res.message);
         resetForm();
         onSuccess();
-      } else {
-        showWarningPopup(res.message);
       }
     } catch (error) {
       console.error("Failed to save device", error);

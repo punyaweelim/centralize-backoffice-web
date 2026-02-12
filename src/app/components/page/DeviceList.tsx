@@ -13,6 +13,7 @@ import {
 import { Badge } from "../ui/badge"
 import { deviceService, Device } from '../../../services/deviceService'
 import { Icon, Pencil, Trash } from 'lucide-react'
+import { showSuccessPopup, showWarningPopup, showConfirmPopup } from "@/utils/alertPopup";
 
 export function DeviceList({ refreshKey, onEdit }: { refreshKey: number, onEdit: (device: Device) => void }) {
   const [devices, setDevices] = useState<Device[]>([])
@@ -71,9 +72,18 @@ export function DeviceList({ refreshKey, onEdit }: { refreshKey: number, onEdit:
 
 
    const handleDeleteDevice = async (id: string) => {
-    await deviceService.deleteDevice(id)
+  const res = await showConfirmPopup("คุณแน่ใจหรือว่าต้องการลบอุปกรณ์นี้")
+
+  if (!res.isConfirmed) return;
+
+  const deleteRes = await deviceService.deleteDevice(id)
+
+  if (deleteRes.status === 200) {
+    showSuccessPopup(deleteRes.message)
+    setDevices([])
     fetchDevices()
   }
+}
 
   const getStatusVariant = (status: string) => {
     switch (status) {
