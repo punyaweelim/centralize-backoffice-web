@@ -25,17 +25,18 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
-      setError(null)
-      const data = await userService.listUsers()
+      const res = await userService.listUsers()
+      console.log('Response from userService.listUsers():', res);
       
       // ตรวจสอบว่า data เป็น array หรือไม่
-      if (Array.isArray(data)) {
-        setUsers(data)
-      } else {
-        console.warn('Received non-array data:', data)
-        setUsers([])
-        setError("รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง")
-      }
+      // if (Array.isArray(res)) {
+        setUsers(res)
+      setError(null)
+      // } else {
+      //   console.warn('Received non-array data:', data)
+      //   setUsers([])
+      //   setError("รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง")
+      // }
     } catch (err: any) {
       const errorMessage = err?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้"
       setError(errorMessage)

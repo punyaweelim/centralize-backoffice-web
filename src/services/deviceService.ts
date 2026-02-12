@@ -9,6 +9,11 @@ export interface Device {
   status: string;
 }
 
+export interface successMessage {
+  message: string;
+  status: number;
+}
+
 export interface EditDeviceData {
   id?: string;
   name: string;
@@ -31,7 +36,7 @@ export const deviceService = {
     return mapData;
   },
 
-  async getDeviceById(id: string): Promise<Device[]> {
+  async getDeviceById(id: string): Promise<Device> {
     const response = await sysApi.get(`management/devices/${id}`);
     // const mapData = response.data.map((device: any) => ({
     //   id: device.id || undefined,
@@ -44,8 +49,15 @@ export const deviceService = {
   },
 
   // สร้าง Device ใหม่
-  async createDevice(deviceData: Device): Promise<Device> {
-    const response = await sysApi.post("management/devices/create", deviceData);
+  async createDevice(deviceData: Device): Promise<successMessage> {
+    const rawData = {
+      model_name: deviceData.name.toUpperCase(),
+      device_type: deviceData.type,
+      serial_number: deviceData.serialNumber.toUpperCase(),
+      status: deviceData.status.toUpperCase(),
+      ip_address: "",
+    }
+    const response = await sysApi.post("management/devices/create", rawData);
     return response.data;
   },
 

@@ -25,7 +25,7 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/auth/, '/auth'),
       },
-      '/users': {
+      'management/users': {
         target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
@@ -37,7 +37,7 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/devices/, '/devices'),
       },
-      '/projects': {
+      'management/projects': {
         target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,

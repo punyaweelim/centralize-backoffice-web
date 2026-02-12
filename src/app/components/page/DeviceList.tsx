@@ -16,29 +16,59 @@ import { Icon, Pencil, Trash } from 'lucide-react'
 
 export function DeviceList({ refreshKey }: { refreshKey: number }) {
   const [devices, setDevices] = useState<Device[]>([])
+  const [device, setDeviceId] = useState<Device>()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // ดึงข้อมูลจาก GET /devices เมื่อโหลดหน้าหรือเมื่อมีการแจ้ง refresh
-  useEffect(() => {
+  // useEffect(() => {
+  //   const fetchDevices = async () => {
+  //     try {
+  //       setIsLoading(true)
+  //       const data = await deviceService.listDevices()
+  //       console.log('data', data);
+        
+  //       setDevices(data)
+  //       setError(null)
+  //     } catch (err) {
+  //       setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
+  //       console.error(err)
+  //     } finally {
+  //       setIsLoading(false)
+  //     }
+  //   }
+
+  //   fetchDevices()
+  // }, [refreshKey])
+  // ดึงข้อมูลจาก GET /users เมื่อโหลดหน้าหรือเมื่อมีการแจ้ง refresh
     const fetchDevices = async () => {
       try {
         setIsLoading(true)
-        const data = await deviceService.listDevices()
-        console.log('data', data);
+        const res = await deviceService.listDevices()
+        console.log('Response from deviceService.listDevices():', res);
         
-        setDevices(data)
+        // ตรวจสอบว่า data เป็น array หรือไม่
+        if (Array.isArray(res)) {
+          setDevices(res)
         setError(null)
-      } catch (err) {
-        setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
-        console.error(err)
+        } else {
+          console.warn('Received non-array data:', res)
+          setDevices([])
+          setError("รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง")
+        }
+      } catch (err: any) {
+        // const errorMessage = err?.message || "ไม่สามารถโหลดข้อมูลอุปกรณ์ได้"
+        // setError(errorMessage)
+        setDevices([]) // ตั้งค่าเป็น array ว่าง
+        console.error('Error fetching devices:', err)
       } finally {
         setIsLoading(false)
       }
     }
-
-    fetchDevices()
-  }, [refreshKey])
+  
+    useEffect(() => {
+      fetchDevices()
+    }, [refreshKey])
 
 
   const fetchDevicesID = async (id: string) => {
@@ -46,10 +76,24 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
         setIsLoading(true)
         const data = await deviceService.getDeviceById(id)
         console.log('data', data);
-        setDevices(data)
+        setDeviceId(data)
         setError(null)
       } catch (err) {
-        setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
+        // setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
+        console.error(err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+
+    const handleDeleteDevice = async (id: string) => {
+      try {
+        setIsLoading(true)  
+        await deviceService.deleteDevice(id)
+        fetchDevices() // รีเฟรชรายการอุปกรณ์หลังจากลบ
+      } catch (err) {
+        setError("ไม่สามารถลบอุปกรณ์ได้")
         console.error(err)
       } finally {
         setIsLoading(false)
@@ -121,8 +165,8 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
                 </TableCell>
                  <TableCell className="text-center">
                   <div className="flex justify-left gap-2">
-                  <a><Pencil name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
-                  <a><Trash name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
+                  <a onClick={() => fetchDevicesID(device.id || '')}><Pencil name="pencil" size={16} className="hover:text-blue-700 cursor-pointer" /></a>
+                  <a onClick={() => handleDeleteDevice(device.id || '')}><Trash name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
                 </div>
                 </TableCell>
               </TableRow>
