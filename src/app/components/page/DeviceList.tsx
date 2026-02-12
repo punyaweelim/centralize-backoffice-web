@@ -14,9 +14,8 @@ import { Badge } from "../ui/badge"
 import { deviceService, Device } from '../../../services/deviceService'
 import { Icon, Pencil, Trash } from 'lucide-react'
 
-export function DeviceList({ refreshKey }: { refreshKey: number }) {
+export function DeviceList({ refreshKey, onEdit }: { refreshKey: number, onEdit: (device: Device) => void }) {
   const [devices, setDevices] = useState<Device[]>([])
-  const [device, setDeviceId] = useState<Device>()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,34 +70,10 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
     }, [refreshKey])
 
 
-  const fetchDevicesID = async (id: string) => {
-      try {
-        setIsLoading(true)
-        const data = await deviceService.getDeviceById(id)
-        console.log('data', data);
-        setDeviceId(data)
-        setError(null)
-      } catch (err) {
-        // setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-
-    const handleDeleteDevice = async (id: string) => {
-      try {
-        setIsLoading(true)  
-        await deviceService.deleteDevice(id)
-        fetchDevices() // รีเฟรชรายการอุปกรณ์หลังจากลบ
-      } catch (err) {
-        setError("ไม่สามารถลบอุปกรณ์ได้")
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+   const handleDeleteDevice = async (id: string) => {
+    await deviceService.deleteDevice(id)
+    fetchDevices()
+  }
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -165,7 +140,7 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
                 </TableCell>
                  <TableCell className="text-center">
                   <div className="flex justify-left gap-2">
-                  <a onClick={() => fetchDevicesID(device.id || '')}><Pencil name="pencil" size={16} className="hover:text-blue-700 cursor-pointer" /></a>
+                  <Pencil onClick={() => onEdit(device)} name="pencil" size={16} className="hover:text-blue-700 cursor-pointer" />
                   <a onClick={() => handleDeleteDevice(device.id || '')}><Trash name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
                 </div>
                 </TableCell>

@@ -62,14 +62,19 @@ export const deviceService = {
   },
 
   // อัปเดต Device
-  async updateDevice(id: string, deviceData: Device): Promise<Device> {
-    const response = await sysApi.post(`management/devices/${id}`, deviceData);
+  async updateDevice(id: string, deviceData: Device): Promise<successMessage> {
+    const rawData = {
+      model_name: deviceData.name.toUpperCase(),
+      status: deviceData.status.toUpperCase(),
+      ip_address: "",
+    }
+    const response = await sysApi.patch(`management/devices/${id}`, rawData);
     return response.data;
   },
 
   // ลบ Device
   async deleteDevice(id: string): Promise<void> {
-    await sysApi.post(`management/devices/${id}`, {});
+    await sysApi.delete(`management/devices/${id}`, {});
   },
 };
 

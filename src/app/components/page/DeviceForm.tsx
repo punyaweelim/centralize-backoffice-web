@@ -1,5 +1,5 @@
 // src/app/components/page/DeviceForm.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -20,6 +20,14 @@ interface DeviceFormValues {
   status: "Available" | "Maintenance" | "Retired" | "Assigned";
 }
 
+export interface Device {
+  id?: string;
+  name: string;
+  type: string;
+  serialNumber: string;
+  status: string;
+}
+
 // ประเภทข้อมูลสำหรับจัดการ Error Message
 interface FormErrors {
   name?: string;
@@ -28,7 +36,15 @@ interface FormErrors {
   status?: string;
 }
 
-export function DeviceForm({ onSuccess }: { onSuccess: () => void }) {
+export function DeviceForm({
+  onSuccess,
+  selectedDevice,
+  onClearSelected,
+}: {
+  onSuccess: () => void;
+  selectedDevice?: Device | null;
+  onClearSelected: () => void;
+}) {
   // State สำหรับเก็บข้อมูล และ Error
   const [values, setValues] = useState<DeviceFormValues>({
     name: "",
@@ -38,6 +54,31 @@ export function DeviceForm({ onSuccess }: { onSuccess: () => void }) {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+  if (!selectedDevice) return; // <<< THIS LINE IS CRITICAL
+
+  const statusMap: Record<string, DeviceFormValues["status"]> = {
+    AVAILABLE: "Available",
+    MAINTENANCE: "Maintenance",
+    RETIRED: "Retired",
+    ASSIGNED: "Assigned",
+  };
+
+  const typeMap: Record<string, DeviceFormValues["type"]> = {
+    VMS: "VMS",
+    SENSOR: "Sensor",
+    ETC: "ETC",
+  };
+
+  setValues({
+    name: selectedDevice.name ?? "",
+    type: typeMap[selectedDevice.type] ?? "",
+    serialNumber: selectedDevice.serialNumber ?? "",
+    status: statusMap[selectedDevice.status] ?? "Available",
+  });
+}, [selectedDevice]);
+
 
   // ฟังก์ชันตรวจสอบความถูกต้อง (Manual Validation)
   const validate = (): boolean => {
@@ -59,34 +100,46 @@ export function DeviceForm({ onSuccess }: { onSuccess: () => void }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  const resetForm = () => {
+    setValues({
+      name: "",
+      type: "",
+      serialNumber: "",
+      status: "Available",
+    });
+    setErrors({});
+    onClearSelected();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (validate()) {
-      try {
-        setIsSubmitting(true);
-        const res = await deviceService.createDevice(values);
-        setValues({
-          name: "",
-          type: "",
-          serialNumber: "",
-          status: "Available",
-        });
-        setErrors({});
-        if (res.status === 201) {
-          // showSuccessPopup(t("user_created_success"));
-          showSuccessPopup(res.message);
-          onSuccess();
-        } else {
-          showWarningPopup(
-            res.message.replace("{{status}}", res.status.toString()),
-          );
-        }
-      } catch (error) {
-        console.error("Failed to create device", error);
-      } finally {
-        setIsSubmitting(false);
+    if (!validate()) return;
+
+    try {
+      setIsSubmitting(true);
+
+      let res;
+
+      if (selectedDevice?.id) {
+        // UPDATE
+        res = await deviceService.updateDevice(selectedDevice.id, values);
+      } else {
+        // CREATE
+        res = await deviceService.createDevice(values);
       }
+
+      if (res.status === 200 || res.status === 201) {
+        showSuccessPopup(res.message);
+        resetForm();
+        onSuccess();
+      } else {
+        showWarningPopup(res.message);
+      }
+    } catch (error) {
+      console.error("Failed to save device", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -118,7 +171,7 @@ export function DeviceForm({ onSuccess }: { onSuccess: () => void }) {
             onValueChange={(val: "VMS" | "Sensor" | "ETC") =>
               setValues({ ...values, type: val })
             }
-            disabled={isSubmitting}
+            disabled={isSubmitting || selectedDevice?.id !== undefined}
           >
             <SelectTrigger className={errors.type ? "border-red-500" : ""}>
               <SelectValue placeholder="เลือกประเภท" />
@@ -143,7 +196,7 @@ export function DeviceForm({ onSuccess }: { onSuccess: () => void }) {
             }
             placeholder="เช่น SN-123456"
             className={errors.serialNumber ? "border-red-500" : ""}
-            disabled={isSubmitting}
+            disabled={isSubmitting || selectedDevice?.id !== undefined}
           />
           {errors.serialNumber && (
             <p className="text-xs text-red-500">{errors.serialNumber}</p>
@@ -178,7 +231,7 @@ export function DeviceForm({ onSuccess }: { onSuccess: () => void }) {
         className="w-full md:w-auto"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "กำลังบันทึก..." : "เพิ่มอุปกรณ์"}
+        {selectedDevice ? "อัปเดตอุปกรณ์" : "เพิ่มอุปกรณ์"}
       </Button>
     </form>
   );
