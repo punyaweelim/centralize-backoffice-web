@@ -26,6 +26,7 @@ export function ProjectList({ refreshKey }: { refreshKey: number }) {
       try {
         setIsLoading(true)
         const data = await projectService.listProjects()
+        console.log('Response from projectService.listProjects():', data);
         setProjects(data)
         setError(null)
       } catch (err) {

@@ -11,15 +11,24 @@ async function loadConfig(): Promise<Record<string, any>> {
 
     if (!response.ok) throw new Error("Failed to load config");
 
-    configCache = await response.json();
+    configCache = Object.freeze(await response.json());
     return configCache || {};
   } catch (error) {
     console.error("Error loading runtime config:", error);
-    return {
-      APP_USER_API_URL:
-        `${import.meta.env.APP_USER_API_URL.toString()}` || "http://localhost:3000",
-      ENVIRONMENT: "production",
-    };
+    // return {
+    //   APP_USER_API_URL:
+    //     `${import.meta.env.APP_USER_API_URL.toString()}` || "http://localhost:3000",
+    //   ENVIRONMENT: "production",
+    // };
+    configCache = Object.freeze({
+    APP_USER_API_URL:
+      import.meta.env.APP_USER_API_URL || "http://localhost:3000",
+    APP_SYSTEM_API_URL:
+      import.meta.env.APP_SYSTEM_API_URL || "http://localhost:3000",
+    ENVIRONMENT: "production",
+  });
+
+  return configCache;
   }
 }
 

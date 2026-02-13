@@ -3,8 +3,18 @@ import React, { useState } from 'react'
 import { DeviceForm } from './page/DeviceForm'
 import { DeviceList } from './page/DeviceList'
 
+export interface Device {
+  id?: string;
+  name: string;
+  type: string;
+  serialNumber: string;
+  status: string;
+}
+
+
 const DevicePage = () => {
   const [refreshKey, setRefreshKey] = useState(0)
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   // ฟังก์ชันสำหรับ Refresh ข้อมูลใน Table หลังจากสร้าง Device ใหม่สำเร็จ
   const handleSuccess = () => {
@@ -20,12 +30,18 @@ const DevicePage = () => {
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">เพิ่มอุปกรณ์ใหม่</h2>
-        <DeviceForm onSuccess={handleSuccess} />
+        <DeviceForm onSuccess={handleSuccess} 
+        selectedDevice={selectedDevice}
+  onClearSelected={() => setSelectedDevice(null)}
+        />
       </div>
 
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">รายการอุปกรณ์ทั้งหมด</h2>
-        <DeviceList refreshKey={refreshKey} />
+        <DeviceList refreshKey={refreshKey} onEdit={(device) => {
+  console.log("EDIT CLICK:", device);
+  setSelectedDevice(device);
+}}/>
       </div>
     </div>
   )

@@ -12,30 +12,78 @@ import {
 } from "../ui/table"
 import { Badge } from "../ui/badge"
 import { deviceService, Device } from '../../../services/deviceService'
+import { Icon, Pencil, Trash } from 'lucide-react'
+import { showSuccessPopup, showWarningPopup, showConfirmPopup } from "@/utils/alertPopup";
 
-export function DeviceList({ refreshKey }: { refreshKey: number }) {
+export function DeviceList({ refreshKey, onEdit }: { refreshKey: number, onEdit: (device: Device) => void }) {
   const [devices, setDevices] = useState<Device[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // ดึงข้อมูลจาก GET /devices เมื่อโหลดหน้าหรือเมื่อมีการแจ้ง refresh
-  useEffect(() => {
+  // useEffect(() => {
+  //   const fetchDevices = async () => {
+  //     try {
+  //       setIsLoading(true)
+  //       const data = await deviceService.listDevices()
+  //       console.log('data', data);
+        
+  //       setDevices(data)
+  //       setError(null)
+  //     } catch (err) {
+  //       setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
+  //       console.error(err)
+  //     } finally {
+  //       setIsLoading(false)
+  //     }
+  //   }
+
+  //   fetchDevices()
+  // }, [refreshKey])
+  // ดึงข้อมูลจาก GET /users เมื่อโหลดหน้าหรือเมื่อมีการแจ้ง refresh
     const fetchDevices = async () => {
       try {
         setIsLoading(true)
-        const data = await deviceService.listDevices()
-        setDevices(data)
+        const res = await deviceService.listDevices()
+        console.log('Response from deviceService.listDevices():', res);
+        
+        // ตรวจสอบว่า data เป็น array หรือไม่
+        if (Array.isArray(res)) {
+          setDevices(res)
         setError(null)
-      } catch (err) {
-        setError("ไม่สามารถโหลดข้อมูลอุปกรณ์ได้")
-        console.error(err)
+        } else {
+          console.warn('Received non-array data:', res)
+          setDevices([])
+          setError("รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง")
+        }
+      } catch (err: any) {
+        // const errorMessage = err?.message || "ไม่สามารถโหลดข้อมูลอุปกรณ์ได้"
+        // setError(errorMessage)
+        setDevices([]) // ตั้งค่าเป็น array ว่าง
+        console.error('Error fetching devices:', err)
       } finally {
         setIsLoading(false)
       }
     }
+  
+    useEffect(() => {
+      fetchDevices()
+    }, [refreshKey])
 
+
+   const handleDeleteDevice = async (id: string) => {
+  const res = await showConfirmPopup("คุณแน่ใจหรือว่าต้องการลบอุปกรณ์นี้")
+
+  if (!res.isConfirmed) return;
+
+  const deleteRes = await deviceService.deleteDevice(id)
+
+  if (deleteRes.status === 200) {
+    showSuccessPopup(deleteRes.message)
+    setDevices([])
     fetchDevices()
-  }, [refreshKey])
+  }
+}
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -74,7 +122,8 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
             <TableHead className="w-[200px]">ชื่ออุปกรณ์</TableHead>
             <TableHead>ประเภท</TableHead>
             <TableHead>Serial Number</TableHead>
-            <TableHead className="text-right">สถานะ</TableHead>
+            <TableHead className="text-center">สถานะ</TableHead>
+            <TableHead >การจัดการ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,10 +143,16 @@ export function DeviceList({ refreshKey }: { refreshKey: number }) {
                   </span>
                 </TableCell>
                 <TableCell className="font-mono text-sm">{device.serialNumber}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-center">
                   <Badge variant={getStatusVariant(device.status)}>
                     {device.status}
                   </Badge>
+                </TableCell>
+                 <TableCell className="text-center">
+                  <div className="flex justify-left gap-2">
+                  <Pencil onClick={() => onEdit(device)} name="pencil" size={16} className="hover:text-blue-700 cursor-pointer" />
+                  <a onClick={() => handleDeleteDevice(device.id || '')}><Trash name="trash-2" size={16} className="hover:text-red-700 cursor-pointer" /></a>
+                </div>
                 </TableCell>
               </TableRow>
             ))
