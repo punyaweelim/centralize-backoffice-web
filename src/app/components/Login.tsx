@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
 import { authenService } from '../../services/authenService';
 // import { apiClient } from '../../utils/apiClient';
 import { Progress } from './ui/progress';
@@ -20,8 +20,13 @@ interface JwtPayload {
   [key: string]: any;
 }
 
-interface LoginProps {
-  onLogin: () => void;
+// Types สำหรับ Error Cases
+type ErrorSeverity = 'error' | 'warning' | 'info';
+
+interface LoginError {
+  message: string;
+  severity: ErrorSeverity;
+  icon: JSX.Element;
 }
 
 export function Login() {
@@ -31,7 +36,7 @@ export function Login() {
 
   // State สำหรับจัดการ Alert Dialog
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [apiErrorMessage, setApiErrorMessage] = useState('');
+  const [loginError, setLoginError] = useState<LoginError | null>(null);
 
   // States สำหรับ Loading และ Progress
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +55,22 @@ export function Login() {
     }
     return () => clearInterval(timer);
   }, [isLoading, progress]);
+
+  // ฟังก์ชันสำหรับ set error ตาม severity
+  const setError = (message: string, severity: ErrorSeverity = 'error') => {
+    const icons = {
+      error: <XCircle className="h-5 w-5 text-red-500" />,
+      warning: <AlertTriangle className="h-5 w-5 text-yellow-500" />,
+      info: <CheckCircle2 className="h-5 w-5 text-blue-500" />
+    };
+
+    setLoginError({
+      message,
+      severity,
+      icon: icons[severity]
+    });
+    setIsAlertOpen(true);
+  };
 
   // ฟังก์ชันตรวจสอบ Email Format
   const validateEmail = (email: string): boolean => {
@@ -80,6 +101,20 @@ export function Login() {
     return true;
   };
 
+  // ฟังก์ชันตรวจสอบ Token ว่าหมดอายุหรือไม่
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const decoded = jwtDecode<JwtPayload>(token);
+      if (decoded.exp) {
+        const currentTime = Date.now() / 1000;
+        return decoded.exp < currentTime;
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  };
+
   // ฟังก์ชันตรวจสอบ Role จาก JWT Token
   const validateRole = (token: string): boolean => {
     try {
@@ -94,12 +129,78 @@ export function Login() {
         // setIsAlertOpen(true);
         return false;
       }
+      
       return true;
     } catch (error) {
       console.error('JWT Decode Error:', error);
       // setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
       // setIsAlertOpen(true);
       return false;
+    }
+  };
+
+  // ฟังก์ชัน Handle Error จาก API
+  const handleApiError = (error: any) => {
+    console.error('Login Error:', error);
+
+    // กรณี Network Error
+    if (error.name === 'TypeError' || error.message.includes('fetch')) {
+      setError(
+        'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้\n' +
+        'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 
+        'error'
+      );
+      return;
+    }
+
+    // กรณีมี error message จาก API
+    const errorMessage = error?.message || '';
+
+    // Handle specific error cases
+    if (errorMessage.includes('Invalid login response') || 
+        errorMessage.includes('Invalid token response')) {
+      setError(
+        'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์\n' +
+        'กรุณาติดต่อผู้ดูแลระบบ', 
+        'error'
+      );
+    } else if (errorMessage.includes('401') || 
+               errorMessage.toLowerCase().includes('unauthorized') ||
+               errorMessage.toLowerCase().includes('invalid credentials')) {
+      setError(
+        'อีเมลหรือรหัสผ่านไม่ถูกต้อง\n' +
+        'กรุณาตรวจสอบและลองใหม่อีกครั้ง', 
+        'warning'
+      );
+    } else if (errorMessage.includes('403') || 
+               errorMessage.toLowerCase().includes('forbidden')) {
+      setError(
+        'บัญชีของคุณถูกระงับการใช้งาน\n' +
+        'กรุณาติดต่อผู้ดูแลระบบ', 
+        'warning'
+      );
+    } else if (errorMessage.includes('429') || 
+               errorMessage.toLowerCase().includes('too many')) {
+      setError(
+        'มีการพยายามเข้าสู่ระบบมากเกินไป\n' +
+        'กรุณารอสักครู่แล้วลองใหม่อีกครั้ง', 
+        'warning'
+      );
+    } else if (errorMessage.includes('500') || 
+               errorMessage.includes('503')) {
+      setError(
+        'เซิร์ฟเวอร์ขัดข้อง\n' +
+        'กรุณาลองใหม่อีกครั้งในภายหลัง', 
+        'error'
+      );
+    } else {
+      // Default error message
+      setError(
+        errorMessage || 
+        'เกิดข้อผิดพลาดในการเข้าสู่ระบบ\n' +
+        'กรุณาลองใหม่อีกครั้ง', 
+        'error'
+      );
     }
   };
 
@@ -145,6 +246,31 @@ export function Login() {
     }
   };
 
+  // Get Alert Dialog styling based on severity
+  const getAlertStyling = () => {
+    if (!loginError) return {};
+
+    const styles = {
+      error: {
+        title: 'Login Failed',
+        titleClass: 'text-destructive',
+        borderClass: 'border-red-500'
+      },
+      warning: {
+        title: 'Access Denied',
+        titleClass: 'text-yellow-600',
+        borderClass: 'border-yellow-500'
+      },
+      info: {
+        title: 'Notice',
+        titleClass: 'text-blue-600',
+        borderClass: 'border-blue-500'
+      }
+    };
+
+    return styles[loginError.severity];
+  };
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       {isLoading && (
@@ -158,7 +284,7 @@ export function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-lg mb-4">
             <Lock className="w-8 h-8 text-black" />
           </div>
-          <h1 className="text-3xl text-white mb-2"> NWL Centralize Back Office</h1>
+          <h1 className="text-3xl text-white mb-2">NWL Centralize Back Office</h1>
           <p className="text-white/50">Sign in to continue</p>
         </div>
 
@@ -179,6 +305,7 @@ export function Login() {
                   } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your email"
                 required
+                disabled={isLoading}
               />
               {emailError && (
                 <p className="text-red-500 text-sm mt-1">{emailError}</p>
@@ -199,6 +326,7 @@ export function Login() {
                   } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your password"
                 required
+                disabled={isLoading}
               />
               {passwordError && (
                 <p className="text-red-500 text-sm mt-1">{passwordError}</p>
@@ -221,16 +349,26 @@ export function Login() {
           </p>
         </div>
 
+        {/* Enhanced Alert Dialog */}
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent className={`border-2 ${getAlertStyling().borderClass}`}>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-destructive">Login Failed</AlertDialogTitle>
-              <AlertDialogDescription>
-                {apiErrorMessage}
+              <AlertDialogTitle className={`flex items-center gap-2 ${getAlertStyling().titleClass}`}>
+                {loginError?.icon}
+                <span>{getAlertStyling().title}</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription className="whitespace-pre-line">
+                {loginError?.message}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
+              <AlertDialogAction 
+                onClick={() => {
+                  setIsAlertOpen(false);
+                  setLoginError(null);
+                }}
+                className="w-full"
+              >
                 Try Again
               </AlertDialogAction>
             </AlertDialogFooter>

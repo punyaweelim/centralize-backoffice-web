@@ -196,7 +196,7 @@ export const apiClient = {
     } catch (error: any) {
       // ตรวจสอบว่าเป็น network error หรือไม่
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please check your internet connection.');
+        throw new Error('Unable to connect to server.');
       }
       
       console.error('API Client Error:', error);
