@@ -3,15 +3,15 @@ import { Lock } from 'lucide-react';
 import { authenService } from '../../services/authenService';
 // import { apiClient } from '../../utils/apiClient';
 import { Progress } from './ui/progress';
-// import {
-//   AlertDialog,
-//   AlertDialogAction,
-//   AlertDialogContent,
-//   AlertDialogDescription,
-//   AlertDialogFooter,
-//   AlertDialogHeader,
-//   AlertDialogTitle,
-// } from "./ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 
@@ -30,8 +30,8 @@ export function Login() {
   const [password, setPassword] = useState('');
 
   // State สำหรับจัดการ Alert Dialog
-  // const [isAlertOpen, setIsAlertOpen] = useState(false);
-  // const [apiErrorMessage, setApiErrorMessage] = useState('');
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [apiErrorMessage, setApiErrorMessage] = useState('');
 
   // States สำหรับ Loading และ Progress
   const [isLoading, setIsLoading] = useState(false);
@@ -86,8 +86,8 @@ export function Login() {
       const decoded = jwtDecode<JwtPayload>(token);
       console.log('Decoded JWT:', decoded);
       // console.log(decoded.role);
-      
-      
+
+
       // if (decoded.role !== 'SYSTEM_ADMIN') {
       if (decoded.roles !== 'SYSTEM_ADMIN') {
         // setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
@@ -104,43 +104,46 @@ export function Login() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const isEmailValid = validateEmail(email);
-  const isPasswordValid = validatePassword(password);
-  if (!isEmailValid || !isPasswordValid) return;
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+    if (!isEmailValid || !isPasswordValid) return;
 
-  setIsLoading(true);
-  setProgress(20);
+    setIsLoading(true);
+    setProgress(20);
 
-  try {
-    const data = await authenService.login({ email, password });
+    try {
+      const data = await authenService.login({ email, password });
 
-    setProgress(60);
+      setProgress(60);
 
-    // optional role check
-    if (data.access_token) {
-      const decoded = jwtDecode<JwtPayload>(data.access_token);
+      // optional role check
+      if (data.access_token) {
+        const decoded = jwtDecode<JwtPayload>(data.access_token);
+        console.log('Decoded JWT:', decoded);
 
-      if (decoded.roles !== 'SYSTEM_ADMIN') {
-        throw new Error('คุณไม่มี Permission ใช้ Back Office');
+        if (decoded.roles !== 'SYSTEM_ADMIN') {
+          setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
+          setIsAlertOpen(true);
+          throw new Error('คุณไม่มี Permission ใช้ Back Office');
+        }
       }
+
+      setProgress(100);
+
+      setTimeout(() => {
+        navigate('/users');
+      }, 400);
+
+    } catch (err) {
+      // DO NOTHING
+      // interceptor will show popup
+    } finally {
+      setIsLoading(false);
+      setProgress(0);
     }
-
-    setProgress(100);
-
-    setTimeout(() => {
-      navigate('/users');
-    }, 400);
-
-  } catch (err) {
-    // DO NOTHING
-    // interceptor will show popup
-  } finally {
-    setIsLoading(false);
-    setProgress(0);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -172,9 +175,8 @@ export function Login() {
                   setEmailError('');
                 }}
                 onBlur={() => validateEmail(email)}
-                className={`w-full px-4 py-3 bg-black border ${
-                  emailError ? 'border-red-500' : 'border-white/10'
-                } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
+                className={`w-full px-4 py-3 bg-black border ${emailError ? 'border-red-500' : 'border-white/10'
+                  } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your email"
                 required
               />
@@ -193,9 +195,8 @@ export function Login() {
                   setPasswordError('');
                 }}
                 onBlur={() => validatePassword(password)}
-                className={`w-full px-4 py-3 bg-black border ${
-                  passwordError ? 'border-red-500' : 'border-white/10'
-                } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
+                className={`w-full px-4 py-3 bg-black border ${passwordError ? 'border-red-500' : 'border-white/10'
+                  } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
                 placeholder="Enter your password"
                 required
               />
@@ -220,7 +221,7 @@ export function Login() {
           </p>
         </div>
 
-        {/* <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-destructive">Login Failed</AlertDialogTitle>
@@ -234,7 +235,7 @@ export function Login() {
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
-        </AlertDialog> */}
+        </AlertDialog>
       </div>
     </div>
   );
