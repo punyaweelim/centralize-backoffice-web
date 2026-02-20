@@ -123,7 +123,7 @@ export function Login() {
         const decoded = jwtDecode<JwtPayload>(data.access_token);
         console.log('Decoded JWT:', decoded);
 
-        if (decoded.roles !== 'SYSTEM_ADMIN') {
+        if (decoded.roles !== 'System Admin') {
           setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
           setIsAlertOpen(true);
           throw new Error('คุณไม่มี Permission ใช้ Back Office');

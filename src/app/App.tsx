@@ -27,7 +27,7 @@ function App() {
       >
         <Route path="/users" element={<UserPage />} />
         <Route path="/devices" element={<DevicePage />} />
-        <Route path="projects" element={<ProjectPage />} />
+        <Route path="/projects" element={<ProjectPage />} />
       </Route>
     </Routes>
   </AuthListener>

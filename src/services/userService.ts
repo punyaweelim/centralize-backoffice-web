@@ -31,6 +31,7 @@ export const userService = {
       console.log("Response from API:", response.data);
 
        const mapData = response.data.data.map((user: any) => ({
+      id: user.id || '',
       email: user.email || undefined,
       name: user.firstName + ' ' + user.lastName || '',
       role: user.role || '',
