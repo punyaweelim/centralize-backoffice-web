@@ -51,11 +51,11 @@ export const deviceService = {
   // สร้าง Device ใหม่
   async createDevice(deviceData: Device): Promise<successMessage> {
     const rawData = {
-      model_name: deviceData.name.toUpperCase(),
-      device_type: deviceData.type,
-      serial_number: deviceData.serialNumber.toUpperCase(),
+      modelName: deviceData.name.toUpperCase(),
+      deviceType: deviceData.type,
+      serialNumber: deviceData.serialNumber.toUpperCase(),
       status: deviceData.status.toUpperCase(),
-      ip_address: "",
+      ipAddress: "",
     }
     const response = await sysApi.post("management/devices/create", rawData);
     return response.data;
@@ -64,9 +64,9 @@ export const deviceService = {
   // อัปเดต Device
   async updateDevice(id: string, deviceData: Device): Promise<successMessage> {
     const rawData = {
-      model_name: deviceData.name.toUpperCase(),
+      modelName: deviceData.name.toUpperCase(),
       status: deviceData.status.toUpperCase(),
-      ip_address: "",
+      ipAddress: "",
     }
     const response = await sysApi.patch(`management/devices/${id}`, rawData);
     return response.data;
