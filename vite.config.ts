@@ -14,31 +14,31 @@ export default defineConfig({
     proxy: {
       // Proxy API requests เพื่อหลีกเลี่ยงปัญหา CORS และ SSL
       '/api': {
-        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        target: 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false, // ข้าม SSL verification ใน development
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/auth': {
-        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        target: 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/auth/, '/auth'),
       },
       'management/users': {
-        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        target: 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/users/, '/users'),
       },
       'management/devices': {
-        target: process.env.VITE_API_URL || 'https://test.system-control-api.nwl-dev.com',
+        target: 'https://test.system-control-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/devices/, '/devices'),
       },
       'management/projects': {
-        target: process.env.VITE_API_URL || 'https://test.user-api.nwl-dev.com',
+        target: 'https://test.user-api.nwl-dev.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/projects/, '/projects'),
