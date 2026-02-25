@@ -21,26 +21,17 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ดึงข้อมูลจาก GET /users เมื่อโหลดหน้าหรือเมื่อมีการแจ้ง refresh
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
       const res = await userService.listUsers()
       console.log('Response from userService.listUsers():', res);
-      
-      // ตรวจสอบว่า data เป็น array หรือไม่
-      // if (Array.isArray(res)) {
-        setUsers(res)
+      setUsers(res)
       setError(null)
-      // } else {
-      //   console.warn('Received non-array data:', data)
-      //   setUsers([])
-      //   setError("รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง")
-      // }
     } catch (err: any) {
       const errorMessage = err?.message || "ไม่สามารถโหลดข้อมูลผู้ใช้งานได้"
       setError(errorMessage)
-      setUsers([]) // ตั้งค่าเป็น array ว่าง
+      setUsers([])
       console.error('Error fetching users:', err)
     } finally {
       setIsLoading(false)
@@ -54,7 +45,8 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
   // Loading State
   if (isLoading) {
     return (
-      <div className="rounded-md border bg-white p-12">
+      // ✅ เปลี่ยนจาก bg-white → bg-card
+      <div className="rounded-md border bg-card p-12">
         <div className="flex flex-col items-center justify-center space-y-4">
           <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
           <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
@@ -71,9 +63,9 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
         <AlertTitle>เกิดข้อผิดพลาด</AlertTitle>
         <AlertDescription className="mt-2 space-y-2">
           <p>{error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={fetchUsers}
             className="mt-2"
           >
@@ -88,11 +80,12 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
   // Empty State
   if (users.length === 0) {
     return (
-      <div className="rounded-md border bg-white p-12">
+      // ✅ เปลี่ยนจาก bg-white → bg-card
+      <div className="rounded-md border bg-card p-12">
         <div className="flex flex-col items-center justify-center space-y-4">
           <Users className="h-12 w-12 text-muted-foreground" />
           <div className="text-center space-y-2">
-            <h3 className="font-semibold text-lg">ยังไม่มีผู้ใช้งานในระบบ</h3>
+            <h3 className="font-semibold text-lg text-foreground">ยังไม่มีผู้ใช้งานในระบบ</h3>
             <p className="text-muted-foreground text-sm">
               เริ่มต้นโดยการเพิ่มผู้ใช้งานคนแรกของคุณด้านบน
             </p>
@@ -104,9 +97,11 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
 
   // Success State with Data
   return (
-    <div className="rounded-md border bg-white">
+    // ✅ เปลี่ยนจาก bg-white → bg-card
+    <div className="rounded-md border bg-card">
       <Table>
-        <TableHeader className="bg-slate-50">
+        {/* ✅ เปลี่ยนจาก bg-slate-50 → bg-muted/50 เพื่อรองรับ Dark mode */}
+        <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead className="w-[200px]">ชื่อ-นามสกุล</TableHead>
             <TableHead>อีเมล</TableHead>
@@ -117,15 +112,22 @@ export function UserList({ refreshKey }: { refreshKey: number }) {
         <TableBody>
           {users.map((user, index) => (
             <TableRow key={user.id || user.email || index}>
-              <TableCell className="font-medium">{user.name || '-'}</TableCell>
-              <TableCell>{user.email || '-'}</TableCell>
+              <TableCell className="font-medium text-foreground">
+                {user.name || '-'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {user.email || '-'}
+              </TableCell>
               <TableCell>
                 <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>
                   {user.role || 'user'}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right text-green-600 font-medium">
-                Active
+              {/* ✅ เปลี่ยนจาก text-green-600 hardcode → ใช้ Badge แทนเพื่อ consistency */}
+              <TableCell className="text-right">
+                <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">
+                  Active
+                </Badge>
               </TableCell>
             </TableRow>
           ))}

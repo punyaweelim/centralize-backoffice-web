@@ -39,14 +39,13 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // ฟังก์ชันตรวจสอบความถูกต้อง
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
-    
+
     if (!values.name || values.name.trim().length < 2) {
       newErrors.name = "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร";
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!values.email || !emailRegex.test(values.email)) {
       newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
@@ -62,45 +61,28 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Reset states
+
     setSubmitError(null);
     setSubmitSuccess(false);
-    
-    if (!validate()) {
-      return;
-    }
+
+    if (!validate()) return;
 
     setIsSubmitting(true);
 
     try {
       const res = await userService.createUser(values);
 
-       if (res.status === 200 || res.status === 201) {
-              showSuccessPopup(res.message);
-              setValues({ name: '', email: '', role: 'sysAdmin' });
+      if (res.status === 200 || res.status === 201) {
+        showSuccessPopup(res.message);
+        setValues({ name: '', email: '', role: 'sysAdmin' });
+        onSuccess();
+      } else {
+        showWarningPopup(res.message);
+      }
 
-              onSuccess();
-            } else {
-              showWarningPopup(res.message);
-            }
-      
-      // Success
-      // setSubmitSuccess(true);
-      // setValues({ name: '', email: '', role: 'user' });
       setErrors({});
-      
-      // แจ้งให้ parent component รู้ว่าสำเร็จแล้ว
-      // onSuccess();
-
-      // ซ่อน success message หลัง 3 วินาที
-      // setTimeout(() => {
-      //   setSubmitSuccess(false);
-      // }, 3000);
-
     } catch (error: any) {
       console.error("Failed to create user", error);
-      // setSubmitError(error?.message || "ไม่สามารถสร้างผู้ใช้งานได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsSubmitting(false);
     }
@@ -108,17 +90,15 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <div className="space-y-4">
-      {/* Success Alert */}
       {submitSuccess && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
+          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription className="text-green-800 dark:text-green-300">
             เพิ่มผู้ใช้งานสำเร็จแล้ว!
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Error Alert */}
       {submitError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -126,29 +106,27 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg border">
+      {/* ✅ เปลี่ยนจาก bg-white → bg-card เพื่อรองรับ Dark mode */}
+      <form onSubmit={handleSubmit} className="space-y-4 bg-card p-6 rounded-lg border">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Name Field */}
           <div className="space-y-2">
             <Label htmlFor="name">
-              ชื่อ-นามสกุล <span className="text-red-500">*</span>
+              ชื่อ-นามสกุล <span className="text-destructive">*</span>
             </Label>
-            <Input 
+            <Input
               id="name"
               value={values.name}
               onChange={(e) => {
-                setValues({...values, name: e.target.value});
-                // Clear error when user starts typing
-                if (errors.name) {
-                  setErrors({...errors, name: undefined});
-                }
+                setValues({ ...values, name: e.target.value });
+                if (errors.name) setErrors({ ...errors, name: undefined });
               }}
-              className={errors.name ? "border-red-500" : ""}
+              className={errors.name ? "border-destructive" : ""}
               placeholder="กรอกชื่อ-นามสกุล"
               disabled={isSubmitting}
             />
             {errors.name && (
-              <p className="text-xs text-red-500 flex items-center gap-1">
+              <p className="text-xs text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.name}
               </p>
@@ -158,24 +136,22 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email">
-              อีเมล <span className="text-red-500">*</span>
+              อีเมล <span className="text-destructive">*</span>
             </Label>
-            <Input 
+            <Input
               id="email"
               type="email"
               value={values.email}
               onChange={(e) => {
-                setValues({...values, email: e.target.value});
-                if (errors.email) {
-                  setErrors({...errors, email: undefined});
-                }
+                setValues({ ...values, email: e.target.value });
+                if (errors.email) setErrors({ ...errors, email: undefined });
               }}
-              className={errors.email ? "border-red-500" : ""}
+              className={errors.email ? "border-destructive" : ""}
               placeholder="example@email.com"
               disabled={isSubmitting}
             />
             {errors.email && (
-              <p className="text-xs text-red-500 flex items-center gap-1">
+              <p className="text-xs text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.email}
               </p>
@@ -186,36 +162,33 @@ export function UserForm({ onSuccess }: { onSuccess: () => void }) {
         {/* Role Field */}
         <div className="space-y-2">
           <Label>
-            บทบาท (Role) <span className="text-red-500">*</span>
+            บทบาท (Role) <span className="text-destructive">*</span>
           </Label>
-          <Select 
-            value={values.role} 
+          <Select
+            value={values.role}
             onValueChange={(val: 'sysAdmin') => {
-              setValues({...values, role: val});
-              if (errors.role) {
-                setErrors({...errors, role: undefined});
-              }
+              setValues({ ...values, role: val });
+              if (errors.role) setErrors({ ...errors, role: undefined });
             }}
             disabled
           >
-            <SelectTrigger className={errors.role ? "border-red-500" : ""}>
+            <SelectTrigger className={errors.role ? "border-destructive" : ""}>
               <SelectValue placeholder="เลือกบทบาท" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="sysAdmin">System Admin</SelectItem>
-              {/* <SelectItem value="admin">Admin</SelectItem> */}
             </SelectContent>
           </Select>
           {errors.role && (
-            <p className="text-xs text-red-500 flex items-center gap-1">
+            <p className="text-xs text-destructive flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               {errors.role}
             </p>
           )}
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full md:w-auto"
           disabled={isSubmitting}
         >

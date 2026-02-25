@@ -2,6 +2,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../utils/apiClient';
 import { Users, HardDrive, FolderKanban, LogOut } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -19,10 +20,10 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 border-r bg-card flex flex-col">
-      <div className="p-6 font-bold text-xl border-b">
+      <div className="p-6 font-bold text-xl border-b text-foreground">
         NWL Back Office
       </div>
-      
+
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => (
           <NavLink
@@ -30,9 +31,9 @@ const Sidebar = () => {
             to={item.path}
             className={({ isActive }) =>
               `flex items-center space-x-3 p-3 rounded-lg transition-colors ${
-                isActive 
-                ? "bg-primary text-primary-foreground" 
-                : "hover:bg-accent text-muted-foreground"
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent text-muted-foreground hover:text-accent-foreground"
               }`
             }
           >
@@ -42,7 +43,11 @@ const Sidebar = () => {
         ))}
       </nav>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t space-y-1">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+
+        {/* Logout */}
         <button
           onClick={handleLogout}
           className="flex items-center space-x-3 p-3 w-full text-destructive hover:bg-destructive/10 rounded-lg transition-colors"

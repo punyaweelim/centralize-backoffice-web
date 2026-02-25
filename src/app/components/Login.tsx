@@ -1,7 +1,7 @@
+// src/app/components/Login.tsx
 import { useEffect, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { authenService } from '../../services/authenService';
-// import { apiClient } from '../../utils/apiClient';
 import { Progress } from './ui/progress';
 import {
   AlertDialog,
@@ -14,14 +14,11 @@ import {
 } from "./ui/alert-dialog";
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { ThemeToggle } from './ThemeToggle';
 
 interface JwtPayload {
   roles?: string;
   [key: string]: any;
-}
-
-interface LoginProps {
-  onLogin: () => void;
 }
 
 export function Login() {
@@ -29,15 +26,12 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // State สำหรับจัดการ Alert Dialog
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [apiErrorMessage, setApiErrorMessage] = useState('');
 
-  // States สำหรับ Loading และ Progress
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // States สำหรับ Validation
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
@@ -51,56 +45,19 @@ export function Login() {
     return () => clearInterval(timer);
   }, [isLoading, progress]);
 
-  // ฟังก์ชันตรวจสอบ Email Format
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      setEmailError('กรุณากรอกอีเมล');
-      return false;
-    }
-    if (!emailRegex.test(email)) {
-      setEmailError('รูปแบบอีเมลไม่ถูกต้อง');
-      return false;
-    }
+    if (!email) { setEmailError('กรุณากรอกอีเมล'); return false; }
+    if (!emailRegex.test(email)) { setEmailError('รูปแบบอีเมลไม่ถูกต้อง'); return false; }
     setEmailError('');
     return true;
   };
 
-  // ฟังก์ชันตรวจสอบ Password
   const validatePassword = (password: string): boolean => {
-    if (!password) {
-      setPasswordError('กรุณากรอกรหัสผ่าน');
-      return false;
-    }
-    if (password.length < 6) {
-      setPasswordError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
-      return false;
-    }
+    if (!password) { setPasswordError('กรุณากรอกรหัสผ่าน'); return false; }
+    if (password.length < 6) { setPasswordError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return false; }
     setPasswordError('');
     return true;
-  };
-
-  // ฟังก์ชันตรวจสอบ Role จาก JWT Token
-  const validateRole = (token: string): boolean => {
-    try {
-      const decoded = jwtDecode<JwtPayload>(token);
-      console.log('Decoded JWT:', decoded);
-      // console.log(decoded.role);
-
-
-      // if (decoded.role !== 'SYSTEM_ADMIN') {
-      if (decoded.roles !== 'SYSTEM_ADMIN') {
-        // setApiErrorMessage('คุณไม่มี Permission ใช้ Back Office');
-        // setIsAlertOpen(true);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('JWT Decode Error:', error);
-      // setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
-      // setIsAlertOpen(true);
-      return false;
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,14 +72,10 @@ export function Login() {
 
     try {
       const data = await authenService.login({ email, password });
-
       setProgress(60);
 
-      // optional role check
       if (data.access_token) {
         const decoded = jwtDecode<JwtPayload>(data.access_token);
-        console.log('Decoded JWT:', decoded);
-
         if (decoded.roles !== 'System Admin') {
           setApiErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
           setIsAlertOpen(true);
@@ -131,13 +84,8 @@ export function Login() {
       }
 
       setProgress(100);
-
-      setTimeout(() => {
-        navigate('/users');
-      }, 400);
-
+      setTimeout(() => navigate('/users'), 400);
     } catch (err) {
-      // DO NOTHING
       // interceptor will show popup
     } finally {
       setIsLoading(false);
@@ -146,69 +94,76 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
+      {/* Progress bar */}
       {isLoading && (
         <div className="absolute top-0 left-0 w-full z-50">
-          <Progress value={progress} className="h-1 rounded-none bg-blue-100" />
+          <Progress value={progress} className="h-1 rounded-none" />
         </div>
       )}
+
+      {/* Theme toggle — top-right corner */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-md">
-        {/* Logo/Header */}
+        {/* Logo / Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-lg mb-4">
-            <Lock className="w-8 h-8 text-black" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-lg mb-4">
+            <Lock className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl text-white mb-2"> NWL Centralize Back Office</h1>
-          <p className="text-white/50">Sign in to continue</p>
+          <h1 className="text-3xl font-medium text-foreground mb-2">
+            NWL Centralize Back Office
+          </h1>
+          <p className="text-muted-foreground">Sign in to continue</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white/5 rounded-lg border border-white/10 p-8">
+        <div className="bg-card rounded-lg border border-border p-8 shadow-sm">
           <form onSubmit={handleSubmit}>
+            {/* Email */}
             <div className="mb-4">
-              <label className="block text-white/70 mb-2">Email</label>
+              <label className="block text-muted-foreground mb-2 text-sm font-medium">
+                Email
+              </label>
               <input
                 type="text"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError('');
-                }}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
                 onBlur={() => validateEmail(email)}
-                className={`w-full px-4 py-3 bg-black border ${emailError ? 'border-red-500' : 'border-white/10'
-                  } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
+                className={`w-full px-4 py-3 bg-input-background border ${
+                  emailError ? 'border-destructive' : 'border-border'
+                } rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 transition-colors`}
                 placeholder="Enter your email"
                 required
               />
-              {emailError && (
-                <p className="text-red-500 text-sm mt-1">{emailError}</p>
-              )}
+              {emailError && <p className="text-destructive text-sm mt-1">{emailError}</p>}
             </div>
 
+            {/* Password */}
             <div className="mb-6">
-              <label className="block text-white/70 mb-2">Password</label>
+              <label className="block text-muted-foreground mb-2 text-sm font-medium">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setPasswordError('');
-                }}
+                onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
                 onBlur={() => validatePassword(password)}
-                className={`w-full px-4 py-3 bg-black border ${passwordError ? 'border-red-500' : 'border-white/10'
-                  } rounded-lg text-white focus:outline-none focus:border-white/30 transition-colors`}
+                className={`w-full px-4 py-3 bg-input-background border ${
+                  passwordError ? 'border-destructive' : 'border-border'
+                } rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 transition-colors`}
                 placeholder="Enter your password"
                 required
               />
-              {passwordError && (
-                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
-              )}
+              {passwordError && <p className="text-destructive text-sm mt-1">{passwordError}</p>}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full px-4 py-3 bg-white text-black rounded-lg hover:bg-white/90 transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
@@ -216,18 +171,17 @@ export function Login() {
         </div>
 
         <div className="text-center mt-6">
-          <p className="text-white/30 text-sm">
+          <p className="text-muted-foreground text-sm">
             © 2026 Back Office. All rights reserved.
           </p>
         </div>
 
+        {/* Error Dialog */}
         <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-destructive">Login Failed</AlertDialogTitle>
-              <AlertDialogDescription>
-                {apiErrorMessage}
-              </AlertDialogDescription>
+              <AlertDialogDescription>{apiErrorMessage}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogAction onClick={() => setIsAlertOpen(false)}>
