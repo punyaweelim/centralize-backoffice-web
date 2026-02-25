@@ -22,9 +22,9 @@ async function loadConfig(): Promise<Record<string, any>> {
     // };
     configCache = Object.freeze({
     APP_USER_API_URL:
-      import.meta.env.APP_USER_API_URL || "http://localhost:3000",
+      import.meta.env.APP_USER_API_URL,
     APP_SYSTEM_API_URL:
-      import.meta.env.APP_SYSTEM_API_URL || "http://localhost:3000",
+      import.meta.env.APP_SYSTEM_API_URL,
     ENVIRONMENT: "production",
   });
 
