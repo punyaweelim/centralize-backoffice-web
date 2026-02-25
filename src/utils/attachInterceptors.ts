@@ -4,7 +4,7 @@ import axios, {
 } from "axios";
 import { showErrorPopup } from "./alertPopup";
 import { authStorage } from "./auth";
-import { appConfig } from "./apiConfig";
+import { getAppConfig } from "./apiConfig"; // ← เปลี่ยนจาก appConfig
 
 /* =========================
    Axios type extension
@@ -17,11 +17,13 @@ declare module "axios" {
 
 /* =========================
    Dedicated refresh API
-   (NO interceptors)
+   (NO interceptors — ใช้ getAppConfig() ตอนสร้าง)
 ========================= */
-const refreshApi = axios.create({
-  baseURL: appConfig.APP_USER_API_URL,
-});
+function createRefreshApi() {
+  return axios.create({
+    baseURL: getAppConfig().APP_USER_API_URL, // ← lazy อ่านตอนเรียกใช้จริง
+  });
+}
 
 /* =========================
    🔐 Shared refresh promise
@@ -36,6 +38,9 @@ async function refreshAccessToken(): Promise<string> {
         throw new Error("No refresh token");
       }
 
+      // สร้าง refreshApi ตรงนี้เพื่อให้ getAppConfig() มีค่าแน่นอนแล้ว
+      const refreshApi = createRefreshApi();
+
       const res = await refreshApi.post("/auth/refresh-token", {
         refresh_token: refreshToken,
       });
@@ -46,7 +51,7 @@ async function refreshAccessToken(): Promise<string> {
       authStorage.setAccessToken(newToken, true);
       return newToken;
     })().finally(() => {
-        console.log("🔄 refresh token", authStorage.getRefreshToken());
+      console.log("🔄 refresh token", authStorage.getRefreshToken());
       refreshPromise = null;
     });
   }
@@ -79,13 +84,10 @@ export function attachInterceptors(
         config.url?.includes("/auth/login") ||
         config.url?.includes("/auth/refresh-token");
 
-        console.log("➡️ interceptor hit", config.url);
-        console.log('is authenEndpoint', isAuthEndpoint);
-
+      console.log("➡️ interceptor hit", config.url);
+      console.log("is authenEndpoint", isAuthEndpoint);
 
       if (!isAuthEndpoint) {
-        console.log('is authenEndpoint', isAuthEndpoint);
-        
         const token = authStorage.getAccessToken();
         if (token) {
           config.headers = config.headers ?? {};
@@ -101,15 +103,14 @@ export function attachInterceptors(
   api.interceptors.response.use(
     (res) => res,
     async (error: AxiosError) => {
-        console.log('error yahh', error);
-        
+      console.log("error yahh", error);
+
       const config = error.config as InternalAxiosRequestConfig;
       const status = error.response?.status;
-      const isLogin = config.url?.includes("/auth/login");
+      const isLogin   = config.url?.includes("/auth/login");
       const isRefresh = config.url?.includes("/auth/refresh-token");
 
-      console.log(status,isLogin,isRefresh);
-      
+      console.log(status, isLogin, isRefresh);
 
       /* ---------- REFRESH FAILED ---------- */
       if (status === 401 && isRefresh) {
@@ -123,20 +124,19 @@ export function attachInterceptors(
       /* ---------- 401 → REFRESH ---------- */
       if (status === 401 && !config._retry && !isLogin) {
         config._retry = true;
-        console.log('401 ready to go');
-        
+        console.log("401 ready to go");
+
         try {
           const newToken = await refreshAccessToken();
-        console.log('attach newtoken', newToken);
-
+          console.log("attach newtoken", newToken);
 
           config.headers = config.headers ?? {};
           config.headers.Authorization = `Bearer ${newToken}`;
 
           return api(config);
         } catch {
-            console.log('error');
-            
+          console.log("error");
+
           authStorage.clearAll();
           if (!window.location.pathname.startsWith("/login")) {
             window.location.href = "/login";
@@ -145,15 +145,10 @@ export function attachInterceptors(
         }
       }
 
-      /* ---------- LOGIN ERROR ---------- */
-    //   if (status === 401 && isLogin) {
-    //     safePopup("Invalid email or password");
-    //   }
-
       /* ---------- OTHER ERRORS ---------- */
       if (status && status !== 200 && status !== 201) {
-        console.log('show status');
-        
+        console.log("show status");
+
         safePopup(
           (error.response?.data as any)?.message ||
             "Something went wrong"
