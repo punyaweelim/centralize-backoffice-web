@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { ThemeToggle } from './ThemeToggle';
+import { appConfig } from '@/utils/apiConfig';
 
 interface JwtPayload {
   roles?: string;
@@ -115,8 +116,10 @@ export function Login() {
           </div>
           <h1 className="text-3xl font-medium text-foreground mb-2">
             NWL Centralize Back Office
+            
           </h1>
-          <p className="text-muted-foreground">Sign in to continue</p>
+          {/* <p className="text-muted-foreground">Sign in to continue</p> */}
+          <p className="text-muted-foreground">URL ENDPOINT : {appConfig.APP_USER_API_URL} | {import.meta.env.APP_USER_API_URL} </p> 
         </div>
 
         {/* Login Form */}
