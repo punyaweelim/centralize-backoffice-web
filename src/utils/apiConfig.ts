@@ -4,7 +4,7 @@ declare global {
   }
 }
 
-export const appConfig = window.APP_CONFIG ?? import.meta.env;
+export const appConfig = window.APP_CONFIG ?? (import.meta as any).env ?? {}
 
 if (!appConfig) {
   throw new Error("❌ APP_CONFIG not found. runtime-config.js not loaded");

@@ -11,39 +11,39 @@ export default defineConfig({
     tailwindcss(),
   ],
    server: {
-    proxy: {
-      // Proxy API requests เพื่อหลีกเลี่ยงปัญหา CORS และ SSL
-      '/api': {
-        target: 'https://test.user-api.nwl-dev.com',
-        changeOrigin: true,
-        secure: false, // ข้าม SSL verification ใน development
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/auth': {
-        target: 'https://test.user-api.nwl-dev.com',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/auth/, '/auth'),
-      },
-      'management/users': {
-        target: 'https://test.user-api.nwl-dev.com',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/users/, '/users'),
-      },
-      'management/devices': {
-        target: 'https://test.system-control-api.nwl-dev.com',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/devices/, '/devices'),
-      },
-      'management/projects': {
-        target: 'https://test.user-api.nwl-dev.com',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/projects/, '/projects'),
-      },
-    },
+    // proxy: {
+    //   // Proxy API requests เพื่อหลีกเลี่ยงปัญหา CORS และ SSL
+    //   '/api': {
+    //     target: 'https://test.user-api.nwl-dev.com',
+    //     changeOrigin: true,
+    //     secure: false, // ข้าม SSL verification ใน development
+    //     rewrite: (path) => path.replace(/^\/api/, ''),
+    //   },
+    //   '/auth': {
+    //     target: 'https://test.user-api.nwl-dev.com',
+    //     changeOrigin: true,
+    //     secure: false,
+    //     rewrite: (path) => path.replace(/^\/auth/, '/auth'),
+    //   },
+    //   'management/users': {
+    //     target: 'https://test.user-api.nwl-dev.com',
+    //     changeOrigin: true,
+    //     secure: false,
+    //     rewrite: (path) => path.replace(/^\/users/, '/users'),
+    //   },
+    //   'management/devices': {
+    //     target: 'https://test.system-control-api.nwl-dev.com',
+    //     changeOrigin: true,
+    //     secure: false,
+    //     rewrite: (path) => path.replace(/^\/devices/, '/devices'),
+    //   },
+    //   'management/projects': {
+    //     target: 'https://test.user-api.nwl-dev.com',
+    //     changeOrigin: true,
+    //     secure: false,
+    //     rewrite: (path) => path.replace(/^\/projects/, '/projects'),
+    //   },
+    // },
     port: 3000,
     open: true,
   },
