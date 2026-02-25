@@ -4,8 +4,12 @@ declare global {
   }
 }
 
-export const appConfig = window.APP_CONFIG ?? (import.meta as any).env ?? {}
-
-if (!appConfig) {
-  throw new Error("❌ APP_CONFIG not found. runtime-config.js not loaded");
+// ไม่อ่านทันทีตอน module load
+export function getAppConfig(): Record<string, string> {
+  // window.__APP_CONFIG__ จะถูก set โดย config.ts หลัง fetch สำเร็จ
+  const cfg = (window as any).__APP_CONFIG__;
+  if (!cfg) {
+    throw new Error("App config not loaded yet. initConfig() must be called first.");
+  }
+  return cfg;
 }
