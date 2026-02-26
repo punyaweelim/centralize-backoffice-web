@@ -101,10 +101,10 @@ export function ProjectList({ refreshKey }: { refreshKey: number }) {
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'Active':    return 'default'
-      case 'On Hold':   return 'secondary'
+      case 'Active': return 'default'
+      case 'On Hold': return 'secondary'
       case 'Completed': return 'outline'
-      default:          return 'secondary'
+      default: return 'secondary'
     }
   }
 
@@ -112,7 +112,7 @@ export function ProjectList({ refreshKey }: { refreshKey: number }) {
   const getDeviceStatusVariant = (status: string) => {
     const s = status?.toUpperCase()
     if (s === 'AVAILABLE' || s === 'AVALIABLE') return 'default'
-    if (s === 'ASSIGNED')    return 'secondary'
+    if (s === 'ASSIGNED') return 'secondary'
     if (s === 'MAINTENANCE') return 'destructive'
     return 'outline'
   }
@@ -179,7 +179,7 @@ export function ProjectList({ refreshKey }: { refreshKey: number }) {
   }
 
   if (isLoading) return <div className="py-10 text-center">กำลังโหลดข้อมูล...</div>
-  if (error)     return <div className="py-10 text-center text-red-500">{error}</div>
+  if (error) return <div className="py-10 text-center text-red-500">{error}</div>
 
   return (
     <>
@@ -203,8 +203,16 @@ export function ProjectList({ refreshKey }: { refreshKey: number }) {
                 </p>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  <span>{project.locationX}, {project.locationY}</span>
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <a
+                    href={`https://www.google.com/maps?q=${project.locationX},${project.locationY}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary underline underline-offset-2 cursor-pointer transition-colors"
+                    title="เปิดใน Google Maps"
+                  >
+                    {project.locationX}, {project.locationY}
+                  </a>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t">
