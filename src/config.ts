@@ -12,11 +12,11 @@ async function loadConfig(): Promise<Record<string, any>> {
 
     configCache = Object.freeze(await response.json());
   } catch (error) {
-    console.warn("runtime-config.json not found, falling back to import.meta.env");
+    console.warn("runtime-config.json not found, falling back to hardcoded values");
     configCache = Object.freeze({
-      APP_USER_API_URL:   import.meta.env.APP_USER_API_URL   || "http://localhost:3000",
-      APP_SYSTEM_API_URL: import.meta.env.APP_SYSTEM_API_URL || "http://localhost:3001",
-      APP_ENVIRONMENT:    import.meta.env.APP_ENVIRONMENT    || "development",
+      APP_USER_API_URL:   "https://test.user-api.nwl-dev.com",
+      APP_SYSTEM_API_URL: "https://test.system-control-api.nwl-dev.com",
+      APP_ENVIRONMENT:    "development",
     });
   }
 
