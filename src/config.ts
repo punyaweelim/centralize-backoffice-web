@@ -1,35 +1,47 @@
-let configCache: Record<string, any> | null = null;
+type ConfigRecord = Record<string, string>;
 
-async function loadConfig(): Promise<Record<string, any>> {
+let configCache: ConfigRecord | null = null;
+
+async function loadConfig(): Promise<ConfigRecord> {
   if (configCache) return configCache;
+
+  if (import.meta.env.DEV) {
+    configCache = {
+      APP_USER_API_URL: import.meta.env.APP_USER_API_URL ?? "",
+      APP_SYSTEM_API_URL: import.meta.env.APP_SYSTEM_API_URL ?? "",
+      ENVIRONMENT: import.meta.env.APP_ENVIRONMENT ?? "local",
+    };
+    return configCache;
+  }
 
   try {
     const response = await fetch("/runtime-config.json", {
       headers: { "Cache-Control": "no-cache" },
     });
 
-    if (!response.ok) throw new Error("Failed to load config");
+    if (!response.ok)
+      throw new Error(`Failed to load runtime config: ${response.status}`);
 
-    configCache = Object.freeze(await response.json());
+    configCache = await response.json();
+    return configCache ?? {};
   } catch (error) {
-    console.warn("runtime-config.json not found, falling back to hardcoded values");
-    configCache = Object.freeze({
-      APP_USER_API_URL:   "https://test.user-api.nwl-dev.com",
-      APP_SYSTEM_API_URL: "https://test.system-control-api.nwl-dev.com",
-      APP_ENVIRONMENT:    "development",
-    });
+    console.error("Error loading runtime config:", error);
+    return {};
   }
+}
 
-  // ★ key fix: set ลง window ให้ apiInstance.ts อ่านได้ตอน instantiate
-  (window as any).__APP_CONFIG__ = configCache;
-  return configCache!;
+export async function getConfig<T = string>(
+  key: string,
+  defaultValue?: T,
+): Promise<T | undefined> {
+  const config = await loadConfig();
+  return (config[key] as T) ?? defaultValue;
+}
+
+export async function getAllConfig(): Promise<ConfigRecord> {
+  return loadConfig();
 }
 
 export async function initConfig(): Promise<void> {
   await loadConfig();
-}
-
-export async function getConfig<T = any>(key: string, defaultValue?: T): Promise<T> {
-  const config = await loadConfig();
-  return config[key] ?? defaultValue;
 }

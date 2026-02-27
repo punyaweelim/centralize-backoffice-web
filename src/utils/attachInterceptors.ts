@@ -1,10 +1,7 @@
-import axios, {
-  InternalAxiosRequestConfig,
-  AxiosError,
-} from "axios";
+import axios, { InternalAxiosRequestConfig, AxiosError } from "axios";
 import { showErrorPopup } from "./alertPopup";
 import { authStorage } from "./auth";
-import { getAppConfig } from "./apiConfig"; // ← เปลี่ยนจาก appConfig
+import { getConfig } from "../config";
 
 /* =========================
    Axios type extension
@@ -17,13 +14,16 @@ declare module "axios" {
 
 /* =========================
    Dedicated refresh API
-   (NO interceptors — ใช้ getAppConfig() ตอนสร้าง)
+   (NO interceptors)
 ========================= */
-function createRefreshApi() {
-  return axios.create({
-    baseURL: getAppConfig().APP_USER_API_URL, // ← lazy อ่านตอนเรียกใช้จริง
-  });
-}
+const refreshApi = axios.create();
+
+refreshApi.interceptors.request.use(async (config) => {
+  if (!config.baseURL) {
+    config.baseURL = await getConfig("APP_USER_API_URL");
+  }
+  return config;
+});
 
 /* =========================
    🔐 Shared refresh promise
@@ -37,9 +37,6 @@ async function refreshAccessToken(): Promise<string> {
       if (!refreshToken) {
         throw new Error("No refresh token");
       }
-
-      // สร้าง refreshApi ตรงนี้เพื่อให้ getAppConfig() มีค่าแน่นอนแล้ว
-      const refreshApi = createRefreshApi();
 
       const res = await refreshApi.post("/auth/refresh-token", {
         refresh_token: refreshToken,
@@ -74,30 +71,28 @@ function safePopup(message: string) {
 /* =========================
    Attach interceptors
 ========================= */
-export function attachInterceptors(
-  api: ReturnType<typeof axios.create>
-) {
+export function attachInterceptors(api: ReturnType<typeof axios.create>) {
   /* ---------- REQUEST ---------- */
-  api.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-      const isAuthEndpoint =
-        config.url?.includes("/auth/login") ||
-        config.url?.includes("/auth/refresh-token");
+  api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    const isAuthEndpoint =
+      config.url?.includes("/auth/login") ||
+      config.url?.includes("/auth/refresh-token");
 
-      console.log("➡️ interceptor hit", config.url);
+    console.log("➡️ interceptor hit", config.url);
+    console.log("is authenEndpoint", isAuthEndpoint);
+
+    if (!isAuthEndpoint) {
       console.log("is authenEndpoint", isAuthEndpoint);
 
-      if (!isAuthEndpoint) {
-        const token = authStorage.getAccessToken();
-        if (token) {
-          config.headers = config.headers ?? {};
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+      const token = authStorage.getAccessToken();
+      if (token) {
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${token}`;
       }
-
-      return config;
     }
-  );
+
+    return config;
+  });
 
   /* ---------- RESPONSE ---------- */
   api.interceptors.response.use(
@@ -107,7 +102,7 @@ export function attachInterceptors(
 
       const config = error.config as InternalAxiosRequestConfig;
       const status = error.response?.status;
-      const isLogin   = config.url?.includes("/auth/login");
+      const isLogin = config.url?.includes("/auth/login");
       const isRefresh = config.url?.includes("/auth/refresh-token");
 
       console.log(status, isLogin, isRefresh);
@@ -145,17 +140,21 @@ export function attachInterceptors(
         }
       }
 
+      /* ---------- LOGIN ERROR ---------- */
+      //   if (status === 401 && isLogin) {
+      //     safePopup("Invalid email or password");
+      //   }
+
       /* ---------- OTHER ERRORS ---------- */
       if (status && status !== 200 && status !== 201) {
         console.log("show status");
 
         safePopup(
-          (error.response?.data as any)?.message ||
-            "Something went wrong"
+          (error.response?.data as any)?.message || "Something went wrong",
         );
       }
 
       return Promise.reject(error);
-    }
+    },
   );
 }
