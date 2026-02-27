@@ -1,33 +1,20 @@
-import axios, { AxiosInstance } from "axios";
-import { getAppConfig } from "./apiConfig";
+import axios from "axios";
+import { getConfig } from "../config";
 
-// ไม่สร้าง instance ทันที — สร้างตอนแรกที่ใช้งาน
-let _sysApi: AxiosInstance | null = null;
-let _authApi: AxiosInstance | null = null;
+export const sysApi = axios.create();
 
-export function getSysApi(): AxiosInstance {
-  if (!_sysApi) {
-    const cfg = getAppConfig();
-    _sysApi = axios.create({ baseURL: cfg.APP_SYSTEM_API_URL });
-    // attach interceptors
-    import("./attachInterceptors").then(({ attachInterceptors }) => {
-      attachInterceptors(_sysApi!);
-    });
+sysApi.interceptors.request.use(async (config) => {
+  if (!config.baseURL) {
+    config.baseURL = await getConfig("APP_SYSTEM_API_URL");
   }
-  return _sysApi;
-}
+  return config;
+});
 
-export function getAuthApi(): AxiosInstance {
-  if (!_authApi) {
-    const cfg = getAppConfig();
-    _authApi = axios.create({ baseURL: cfg.APP_USER_API_URL });
-    import("./attachInterceptors").then(({ attachInterceptors }) => {
-      attachInterceptors(_authApi!);
-    });
+export const authApi = axios.create();
+
+authApi.interceptors.request.use(async (config) => {
+  if (!config.baseURL) {
+    config.baseURL = await getConfig("APP_USER_API_URL");
   }
-  return _authApi;
-}
-
-// backward compat — ใช้ getter แทน direct export
-export const sysApi  = new Proxy({} as AxiosInstance, { get: (_, p) => getSysApi()[p as keyof AxiosInstance] });
-export const authApi = new Proxy({} as AxiosInstance, { get: (_, p) => getAuthApi()[p as keyof AxiosInstance] });
+  return config;
+});
